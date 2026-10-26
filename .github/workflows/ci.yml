@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Unit and integration tests (Postgres via testcontainers)
+        run: pnpm test
+      - run: pnpm check-licenses
+      - name: OpenAPI document is committed and up to date (ADR 0009)
+        run: pnpm --filter @crm/api openapi && git diff --exit-code apps/api/openapi.json
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - name: gitleaks
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 git /repo --no-banner --redact
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: crm, POSTGRES_PASSWORD: crm, POSTGRES_DB: crm }
+        ports: ["5433:5432"]
+        options: --health-cmd "pg_isready -U crm" --health-interval 5s --health-retries 20
+      s3:
+        image: rustfs/rustfs:1.0.3
+        env: { RUSTFS_ACCESS_KEY: devaccess, RUSTFS_SECRET_KEY: devsecret-devsecret }
+        ports: ["9000:9000"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @crm/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env: { CI: "true" }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: apps/web/test-results }
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - run: docker build --target api -t apply-crm:api .
+      - run: docker build --target worker -t apply-crm:worker .

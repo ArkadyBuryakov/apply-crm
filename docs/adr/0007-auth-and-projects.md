@@ -1,6 +1,6 @@
 # 0007. Authentication and projects via BetterAuth
 
-- Status: Accepted
+- Status: Accepted, HTTP exposure refined by 0030
 - Date: 2026-10-26
 - Source: round-1 Q11, Q17
 

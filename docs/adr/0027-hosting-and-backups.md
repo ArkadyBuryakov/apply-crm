@@ -1,6 +1,6 @@
 # 0027. Hosting on Coolify and backups
 
-- Status: Accepted (refines 0011)
+- Status: Accepted (refines 0011), development storage amended by 0030
 - Date: 2026-10-26
 - Source: round-3 Q8, Q9, round-4 Q2
 

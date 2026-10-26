@@ -1,6 +1,6 @@
 # 0011. Deployment and runtime model
 
-- Status: Accepted, refined by 0027 (Coolify hosting) and amended by 0024 (worker)
+- Status: Accepted, refined by 0027 (Coolify hosting) and 0030 (RustFS instead of MinIO), amended by 0024 (worker)
 - Date: 2026-10-26
 - Source: round-1 Q19
 

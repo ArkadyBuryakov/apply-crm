@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  - scripts
+allowBuilds:
+  lefthook: true
+  esbuild: true
+  # optional native addons pulled in by testcontainers; not needed
+  cpu-features: false
+  ssh2: false
+  protobufjs: false

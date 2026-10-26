@@ -1,0 +1,14 @@
+{
+  "name": "@crm/scripts",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "import-resumes": "tsx src/import-resumes.ts",
+    "typecheck": "tsc -p .",
+    "check-licenses": "tsx src/check-licenses.ts"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}

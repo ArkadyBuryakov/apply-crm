@@ -1,0 +1,44 @@
+# Self-hosting without Coolify (ADR 0027). Copy .env.example to .env and fill it in first.
+# Object storage is external (e.g. Hetzner Object Storage); uncomment `s3` to run RustFS locally instead.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-crm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-crm}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crm}"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: { context: ., target: api }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-crm}
+    ports: ["3000:3000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  worker:
+    build: { context: ., target: worker }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-crm}
+    # The API applies migrations on start; the worker waits for it.
+    depends_on:
+      api: { condition: service_healthy }
+
+  # s3:
+  #   image: rustfs/rustfs:1.0.3
+  #   environment: { RUSTFS_ACCESS_KEY: change-me, RUSTFS_SECRET_KEY: change-me-too }
+  #   volumes: [s3data:/data]
+
+volumes:
+  pgdata:
+  # s3data:

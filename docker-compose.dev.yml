@@ -1,0 +1,21 @@
+# Local development services. Object storage uses RustFS, an S3-compatible server
+# (MinIO no longer publishes community container images).
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm
+      POSTGRES_DB: crm
+    ports: ["5433:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  s3:
+    image: rustfs/rustfs:1.0.3
+    environment:
+      RUSTFS_ACCESS_KEY: devaccess
+      RUSTFS_SECRET_KEY: devsecret-devsecret
+    ports: ["9000:9000"]
+    volumes: [s3data:/data]
+volumes:
+  pgdata:
+  s3data:

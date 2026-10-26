@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+data/
+# personal documents must never be committed (ADR 0028)
+*.pdf
+*.tex
+!**/fixtures/**/*.tex
+playwright-report/
+test-results/
+apps/web/src/api/schema.d.ts

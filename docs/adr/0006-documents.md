@@ -1,6 +1,6 @@
 # 0006. Documents and resume versioning
 
-- Status: Accepted, refined by 0025 (LaTeX documents and templates)
+- Status: Accepted, refined by 0025 (LaTeX documents and templates) and 0030 (RustFS in development)
 - Date: 2026-10-26
 - Source: round-1 Q10, Q19
 

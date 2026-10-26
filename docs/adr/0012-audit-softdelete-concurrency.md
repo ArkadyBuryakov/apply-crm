@@ -1,6 +1,6 @@
 # 0012. Audit log, soft delete, optimistic concurrency
 
-- Status: Accepted
+- Status: Accepted, link-row deletion refined by 0030
 - Date: 2026-10-26
 - Source: round-1 Q20
 

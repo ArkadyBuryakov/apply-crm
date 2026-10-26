@@ -1,0 +1,44 @@
+{
+  "name": "@crm/api",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
+    "worker:dev": "tsx watch --env-file-if-exists=../../.env src/worker.ts",
+    "build": "tsup",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "openapi": "tsx src/scripts/write-openapi.ts",
+    "auth:generate": "auth generate --config src/auth-cli.ts --output ../../packages/db/src/auth-schema.ts -y && biome format --write ../../packages/db/src/auth-schema.ts"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@testcontainers/postgresql": "12.2.1",
+    "auth": "1.7.12",
+    "tsup": "9.0.0",
+    "tsx": "4.23.15",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
+    "@better-auth/api-key": "1.7.12",
+    "@better-auth/mcp": "1.7.12",
+    "@better-auth/oauth-provider": "1.7.12",
+    "@crm/db": "workspace:*",
+    "@crm/shared": "workspace:*",
+    "@hono/node-server": "^2.1.5",
+    "@hono/zod-openapi": "1.6.3",
+    "@modelcontextprotocol/server": "2.3.1",
+    "better-auth": "1.7.12",
+    "drizzle-orm": "0.45.4",
+    "fflate": "^0.8.3",
+    "hono": "4.13.14",
+    "jose": "^6.2.13",
+    "pg-boss": "12.38.0",
+    "postgres": "3.4.9",
+    "zod": "4.6.7"
+  }
+}

@@ -1,6 +1,6 @@
 # 0010. MCP server
 
-- Status: Accepted
+- Status: Accepted, authorization details refined by 0030
 - Date: 2026-10-26
 - Source: round-1 Q15–Q18
 

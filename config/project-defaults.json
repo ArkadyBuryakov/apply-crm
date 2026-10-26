@@ -1,0 +1,21 @@
+{
+  "$comment": "Seeded into every new project (ADR 0003). Edits here affect only projects created afterwards.",
+  "channels": [
+    { "name": "Email", "kind": "email" },
+    { "name": "Phone", "kind": "phone" },
+    { "name": "LinkedIn", "kind": "linkedin", "url": "https://www.linkedin.com" },
+    { "name": "Company careers site", "kind": "careers_site" },
+    { "name": "Job board", "kind": "job_board" },
+    { "name": "Telegram", "kind": "messenger" },
+    { "name": "Referral", "kind": "other" },
+    { "name": "Recruiting agency", "kind": "other" }
+  ],
+  "stages": [
+    { "key": "saved", "label": "Saved", "suggestOnActionTypes": [] },
+    { "key": "applied", "label": "Applied", "suggestOnActionTypes": ["application"] },
+    { "key": "screening", "label": "Screening", "suggestOnActionTypes": [] },
+    { "key": "interviewing", "label": "Interviewing", "suggestOnActionTypes": ["interview"] },
+    { "key": "take_home", "label": "Take-home", "suggestOnActionTypes": ["take_home"] },
+    { "key": "offer", "label": "Offer", "suggestOnActionTypes": ["offer"] }
+  ]
+}
