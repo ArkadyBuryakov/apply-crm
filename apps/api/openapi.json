@@ -13942,6 +13942,9 @@
         "x-permissions": [
           "template:create"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
@@ -14117,6 +14120,165 @@
                     ]
                   }
                 }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/templates/{templateId}/versions/inline": {
+      "post": {
+        "operationId": "createTemplateVersion",
+        "summary": "Add a template version from file contents",
+        "description": "JSON alternative to the multipart upload. Pass the complete file set (e.g. the .cls file) as a new immutable version; files of earlier versions are not carried over. Text files use `encoding: utf8` (the default), binary files such as fonts or images use `base64`. Use the returned version id as `templateVersionId` in createLatexVersion.",
+        "tags": [
+          "Documents"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "template:update"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^tpl_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "tpl_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "template ID"
+            },
+            "required": true,
+            "description": "template ID",
+            "name": "templateId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "content": {
+                          "type": "string",
+                          "maxLength": 27962031
+                        },
+                        "encoding": {
+                          "type": "string",
+                          "enum": [
+                            "utf8",
+                            "base64"
+                          ],
+                          "default": "utf8"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "content"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 50
+                  }
+                },
+                "required": [
+                  "files"
+                ]
               }
             }
           }

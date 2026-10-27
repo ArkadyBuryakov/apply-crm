@@ -150,6 +150,24 @@ describe("MCP server", () => {
     expect(stale.isError).toBe(true);
     expect(parse(stale).error.code).toBe("precondition_failed");
 
+    // Templates can be created and filled without multipart uploads.
+    const template = parse(await mcp.callTool({ name: "createTemplate", arguments: { name: "resume-cls" } }));
+    const withFiles = await mcp.callTool({
+      name: "createTemplateVersion",
+      arguments: {
+        templateId: template.id,
+        files: [
+          { name: "resume.cls", content: "\\ProvidesClass{resume}" },
+          { name: "logo.png", content: Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64"), encoding: "base64" },
+        ],
+      },
+    });
+    expect(withFiles.isError).toBeFalsy();
+    expect(parse(withFiles).versions[0].files).toEqual([
+      expect.objectContaining({ name: "resume.cls", size: 22 }),
+      expect.objectContaining({ name: "logo.png", size: 4 }),
+    ]);
+
     // Changes made through MCP are attributed as such in the audit log.
     const audit = await owner.get(`/api/projects/${project.id}/audit?entityId=${org.id}`);
     expect(audit.body.items[0].via).toBe("mcp");

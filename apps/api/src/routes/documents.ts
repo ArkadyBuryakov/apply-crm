@@ -31,7 +31,7 @@ import {
 import { scopeOf } from "../http/scope.js";
 import { iso, isoOrNull, pid, pidOrNull } from "../http/serialize.js";
 import type { AppEnv } from "../http/types.js";
-import { blobKeys } from "../services/blobs.js";
+import { type BlobStore, blobKeys } from "../services/blobs.js";
 import { audit, requireVisible, restore, type Scope, softDelete, updateVersioned, visible } from "../services/core.js";
 import { diffOf } from "./organizations.js";
 
@@ -487,6 +487,7 @@ const createTemplate = defineRoute({
   description: "Creates an empty template; upload its files as a version.",
   scope: "project",
   permissions: ["template:create"],
+  mcp: { expose: true },
   tags: ["Documents"],
   request: {
     params: ProjectParams,
@@ -512,6 +513,40 @@ const uploadTemplateVersion = defineRoute({
       required: true,
       content: { "multipart/form-data": { schema: z.object({ files: z.union([fileField, z.array(fileField)]) }) } },
     },
+  },
+  responses: { 201: jsonResponse(TemplateSchema, "Template"), ...errorResponses(400, 403, 404) },
+});
+
+const createTemplateVersionRoute = defineRoute({
+  method: "post",
+  path: "/api/projects/{projectId}/templates/{templateId}/versions/inline",
+  operationId: "createTemplateVersion",
+  summary: "Add a template version from file contents",
+  description:
+    "JSON alternative to the multipart upload. Pass the complete file set (e.g. the .cls file) as a new immutable " +
+    "version; files of earlier versions are not carried over. Text files use `encoding: utf8` (the default), binary " +
+    "files such as fonts or images use `base64`. Use the returned version id as `templateVersionId` in " +
+    "createLatexVersion.",
+  scope: "project",
+  permissions: ["template:update"],
+  mcp: { expose: true },
+  tags: ["Documents"],
+  request: {
+    params: TemplateParams,
+    body: jsonBody(
+      z.object({
+        files: z
+          .array(
+            z.object({
+              name: z.string().min(1).max(120),
+              content: z.string().max(Math.ceil((MAX_UPLOAD_BYTES * 4) / 3) + 4),
+              encoding: z.enum(["utf8", "base64"]).default("utf8"),
+            }),
+          )
+          .min(1)
+          .max(50),
+      }),
+    ),
   },
   responses: { 201: jsonResponse(TemplateSchema, "Template"), ...errorResponses(400, 403, 404) },
 });
@@ -802,49 +837,69 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
 
   app.openapi(uploadTemplateVersion, async (c) => {
     const s = scopeOf(c);
-    const { blobs } = c.var.deps.services;
-    const templateId = uuidOf("template", c.req.valid("param").templateId);
-    const [template] = await s.db
-      .select()
-      .from(documentTemplate)
-      .where(visible(documentTemplate, s, templateId));
-    if (!template) throw notFound("Template");
     const uploads = asFiles(c.req.valid("form").files);
-    const versionId = newUuid();
-    const files: TemplateFile[] = [];
-    const names = new Set<string>();
+    const files: NewTemplateFile[] = [];
     for (const file of uploads) {
       if (file.size > MAX_UPLOAD_BYTES) throw badRequest(`${file.name} is too large`);
-      const name = safeFilename(file.name);
-      if (names.has(name)) throw badRequest(`Duplicate file name ${name}`);
-      names.add(name);
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const blobKey = blobKeys.templateFile(s.projectId, versionId, name);
-      await blobs.put(blobKey, bytes, file.type || "application/octet-stream");
-      files.push({ name, blobKey, size: bytes.byteLength, sha256: sha256(bytes) });
+      files.push({ name: file.name, bytes: new Uint8Array(await file.arrayBuffer()), type: file.type });
     }
-    const view = await s.db.transaction(async (tx) => {
-      const [{ next } = { next: 1 }] = await tx
-        .select({ next: sql<number>`coalesce(max(${documentTemplateVersion.versionNo}), 0)::int + 1` })
-        .from(documentTemplateVersion)
-        .where(eq(documentTemplateVersion.templateId, templateId));
-      await tx.insert(documentTemplateVersion).values({
-        id: versionId,
-        projectId: s.projectId,
-        templateId,
-        versionNo: next,
-        files,
-        createdBy: s.actor.userId,
-      });
-      await tx.update(documentTemplate).set({ updatedAt: new Date() }).where(eq(documentTemplate.id, templateId));
-      await audit(tx, s, {
-        entityType: "templateVersion",
-        entityId: versionId,
-        op: "create",
-        diff: { templateId, files: files.map((f) => f.name) },
-      });
-      return templateView(tx, template);
-    });
+    const view = await addTemplateVersion(c.var.deps.services.blobs, s, c.req.valid("param").templateId, files);
     return c.json(view, 201);
+  });
+
+  app.openapi(createTemplateVersionRoute, async (c) => {
+    const s = scopeOf(c);
+    const files = c.req.valid("json").files.map((f) => {
+      const bytes = new Uint8Array(Buffer.from(f.content, f.encoding));
+      if (bytes.byteLength > MAX_UPLOAD_BYTES) throw badRequest(`${f.name} is too large`);
+      return { name: f.name, bytes };
+    });
+    const view = await addTemplateVersion(c.var.deps.services.blobs, s, c.req.valid("param").templateId, files);
+    return c.json(view, 201);
+  });
+}
+
+type NewTemplateFile = { name: string; bytes: Uint8Array; type?: string };
+
+/** Stores a template's complete file set as a new immutable version. */
+async function addTemplateVersion(blobs: BlobStore, s: Scope, templatePublicId: string, uploads: NewTemplateFile[]) {
+  const templateId = uuidOf("template", templatePublicId);
+  const [template] = await s.db
+    .select()
+    .from(documentTemplate)
+    .where(visible(documentTemplate, s, templateId));
+  if (!template) throw notFound("Template");
+  const versionId = newUuid();
+  const files: TemplateFile[] = [];
+  const names = new Set<string>();
+  for (const { name: rawName, bytes, type } of uploads) {
+    const name = safeFilename(rawName);
+    if (names.has(name)) throw badRequest(`Duplicate file name ${name}`);
+    names.add(name);
+    const blobKey = blobKeys.templateFile(s.projectId, versionId, name);
+    await blobs.put(blobKey, bytes, type || "application/octet-stream");
+    files.push({ name, blobKey, size: bytes.byteLength, sha256: sha256(bytes) });
+  }
+  return s.db.transaction(async (tx) => {
+    const [{ next } = { next: 1 }] = await tx
+      .select({ next: sql<number>`coalesce(max(${documentTemplateVersion.versionNo}), 0)::int + 1` })
+      .from(documentTemplateVersion)
+      .where(eq(documentTemplateVersion.templateId, templateId));
+    await tx.insert(documentTemplateVersion).values({
+      id: versionId,
+      projectId: s.projectId,
+      templateId,
+      versionNo: next,
+      files,
+      createdBy: s.actor.userId,
+    });
+    await tx.update(documentTemplate).set({ updatedAt: new Date() }).where(eq(documentTemplate.id, templateId));
+    await audit(tx, s, {
+      entityType: "templateVersion",
+      entityId: versionId,
+      op: "create",
+      diff: { templateId, files: files.map((f) => f.name) },
+    });
+    return templateView(tx, template);
   });
 }
