@@ -8,7 +8,7 @@ let container: StartedPostgreSqlContainer | undefined;
 export async function setup(project: TestProject) {
   let baseUrl = process.env.TEST_DATABASE_URL;
   if (!baseUrl) {
-    container = await new PostgreSqlContainer("postgres:17-alpine").start();
+    container = await new PostgreSqlContainer("postgres:18-alpine").start();
     baseUrl = container.getConnectionUri();
   }
   const admin = createDb(baseUrl, { max: 1 });

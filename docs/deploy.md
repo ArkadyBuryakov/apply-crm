@@ -16,7 +16,7 @@ Enable versioning on the documents bucket if the location supports it. Productio
 
 ## 2. Postgres
 
-Create a PostgreSQL 17 database in Coolify. Under **Backups**, schedule daily backups to an S3 destination pointing at the
+Create a PostgreSQL 18 database in Coolify. Under **Backups**, schedule daily backups to an S3 destination pointing at the
 backups bucket.
 
 ## 3. Application

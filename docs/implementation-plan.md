@@ -9,7 +9,7 @@ tests and a running app. Later phases depend only on earlier ones.
 
 - pnpm workspace: `apps/api`, `apps/web`, `packages/shared`, `packages/db`, `scripts/`
 - TypeScript strict and Biome (lint + format). Internal packages export TS source, which tsx, Vite and tsup consume directly.
-- `docker-compose.dev.yml`: Postgres 17 and RustFS (S3; MinIO no longer publishes images, see ADR 0030)
+- `docker-compose.dev.yml`: Postgres 18 and RustFS (S3; MinIO no longer publishes images, see ADR 0030)
 - `.gitignore` per ADR 0028, a gitleaks pre-commit hook (`lefthook`), `.env.example`, and `"license": "AGPL-3.0-only"` everywhere
 - **Done when:** `pnpm install && pnpm typecheck && pnpm lint` pass on an empty skeleton.
 

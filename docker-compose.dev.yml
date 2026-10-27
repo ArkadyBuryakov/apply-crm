@@ -3,13 +3,13 @@
 # Data lives in .dev-data/ (gitignored), which workforest symlinks into every worktree (.workforest.yaml).
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: crm
       POSTGRES_PASSWORD: crm
       POSTGRES_DB: crm
     ports: ["5433:5432"]
-    volumes: [./.dev-data/postgres:/var/lib/postgresql/data]
+    volumes: [./.dev-data/postgresql:/var/lib/postgresql]
     healthcheck:
       # TCP rather than the socket: during first-start initialization only a socket-bound temporary server runs.
       test: ["CMD-SHELL", "pg_isready -U crm -h 127.0.0.1"]
