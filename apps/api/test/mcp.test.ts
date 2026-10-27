@@ -87,6 +87,8 @@ describe("MCP server", () => {
     expect(names).not.toContain("deleteOrganization");
     expect(names).not.toContain("purgeContact");
     expect(names).not.toContain("transferOwnership");
+    // Soft deletes of actions are reversible, so they are exposed.
+    expect(names).toEqual(expect.arrayContaining(["deleteAction", "restoreAction"]));
 
     const create = ownerTools.find((t) => t.name === "createOrganization")!;
     expect(create.description).toContain("company");

@@ -10223,6 +10223,9 @@
         "x-permissions": [
           "action:delete"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
@@ -10522,6 +10525,9 @@
         "x-permissions": [
           "action:delete"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
