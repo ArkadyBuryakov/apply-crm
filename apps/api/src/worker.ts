@@ -1,9 +1,14 @@
 // Worker entrypoint (ADR 0024): consumes pg-boss jobs. Same image as the API, different command.
+import { rmSync, writeFileSync } from "node:fs";
 import { createDb } from "@crm/db";
 import { loadEnv } from "./env.js";
 import { S3BlobStore } from "./services/blobs.js";
 import { runCompileJob, TectonicCompiler } from "./services/compile.js";
 import { type CompileDocumentJob, PgBossJobQueue, QUEUES } from "./services/jobs.js";
+
+// The image's HEALTHCHECK tests for this file; remove a stale one left by a previous run of the same container.
+const READY_FILE = "/tmp/worker-ready";
+rmSync(READY_FILE, { force: true });
 
 const env = loadEnv();
 const { db, client } = createDb(env.DATABASE_URL, { max: 4 });
@@ -20,6 +25,7 @@ await boss.work<CompileDocumentJob>(QUEUES.compileDocument, { batchSize: 1 }, as
   const result = await runCompileJob({ db, blobs, compiler }, job.data);
   console.log(`[worker] ${QUEUES.compileDocument} ${job.data.documentVersionId}: ${result}`);
 });
+writeFileSync(READY_FILE, "");
 console.log("[worker] listening for jobs");
 
 async function shutdown() {

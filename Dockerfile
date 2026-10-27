@@ -53,4 +53,7 @@ COPY docker/tectonic-warmup.tex /tmp/warmup/warmup.tex
 RUN mkdir -p /var/cache/tectonic && chown node:node /var/cache/tectonic /tmp/warmup
 USER node
 RUN tectonic -X compile --untrusted --outdir /tmp/warmup /tmp/warmup/warmup.tex && rm -rf /tmp/warmup
+# The worker writes this file once it is connected to the job queue. Coolify also requires a health check on every
+# target once the Dockerfile contains one.
+HEALTHCHECK --interval=30s --timeout=5s CMD test -f /tmp/worker-ready
 CMD ["node", "--enable-source-maps", "dist/worker.js"]
