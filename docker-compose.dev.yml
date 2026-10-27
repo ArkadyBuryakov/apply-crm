@@ -1,5 +1,6 @@
 # Local development services. Object storage uses RustFS, an S3-compatible server
 # (MinIO no longer publishes community container images).
+# Data lives in .dev-data/ (gitignored), which workforest symlinks into every worktree (.workforest.yaml).
 services:
   postgres:
     image: postgres:17-alpine
@@ -8,14 +9,18 @@ services:
       POSTGRES_PASSWORD: crm
       POSTGRES_DB: crm
     ports: ["5433:5432"]
-    volumes: [pgdata:/var/lib/postgresql/data]
+    volumes: [./.dev-data/postgres:/var/lib/postgresql/data]
+    healthcheck:
+      # TCP rather than the socket: during first-start initialization only a socket-bound temporary server runs.
+      test: ["CMD-SHELL", "pg_isready -U crm -h 127.0.0.1"]
+      interval: 2s
+      retries: 30
   s3:
     image: rustfs/rustfs:1.0.3
+    # The image's own user cannot write to a bind mount created by the host.
+    user: root
     environment:
       RUSTFS_ACCESS_KEY: devaccess
       RUSTFS_SECRET_KEY: devsecret-devsecret
     ports: ["9000:9000"]
-    volumes: [s3data:/data]
-volumes:
-  pgdata:
-  s3data:
+    volumes: [./.dev-data/s3:/data]

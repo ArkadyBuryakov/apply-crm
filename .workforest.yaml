@@ -1,0 +1,70 @@
+# workforest (`man 5 workforest`): one development environment at a time, from any worktree.
+#
+# Worktrees share the main checkout's .env and dev data (.dev-data/, Postgres and RustFS bind mounts) through symlinks,
+# and the scripts that hold ports are exclusive: starting one in a worktree stops it wherever else it runs.
+#
+#   wf create feature/x      new worktree: links .env and .dev-data, installs dependencies
+#   wf run dev               Postgres, RustFS, API :3000 and web :5173 in the background (dev-full adds the worker)
+#   wf run down              stop all of it, in whichever worktree it runs
+#   wf run db-reset          empty the database (branches with diverging migrations share it)
+
+symlinks:
+  - .env
+  - .dev-data
+
+setup_scripts:
+  - pnpm install --frozen-lockfile --prefer-offline
+
+scripts:
+  services:
+    command: mkdir -p .dev-data && docker compose -f docker-compose.dev.yml up
+    cleanup: docker compose -f docker-compose.dev.yml stop
+    background: true
+    exclusive: true
+    hidden: true
+  services-ready:
+    command: timeout 60 sh -c 'until docker compose -f docker-compose.dev.yml exec -T postgres pg_isready -q -U crm -h 127.0.0.1; do sleep 1; done'
+    hidden: true
+
+  api:
+    command: pnpm --filter @crm/api dev
+    hidden: true
+  web:
+    command: pnpm --filter @crm/web dev
+    hidden: true
+  servers:
+    bulk: [api, web]
+    background: true
+    exclusive: true
+    hidden: true
+    stop_timeout: 10
+  # Renders documents; needs tectonic on PATH.
+  worker:
+    command: pnpm --filter @crm/api worker:dev
+    background: true
+    exclusive: true
+    stop_timeout: 10
+
+  dev:
+    pipeline: [services, services-ready, servers]
+  dev-full:
+    pipeline: [dev, worker]
+  down: workforest stop --all worker 2>/dev/null; workforest stop --all servers 2>/dev/null; workforest stop --all services 2>/dev/null; echo "dev environment stopped"
+
+  reset-database:
+    command: docker compose -f docker-compose.dev.yml exec -T postgres psql -q -U crm -d postgres -c 'drop database if exists crm with (force)' -c 'create database crm'
+    hidden: true
+  db-reset:
+    pipeline: [services, services-ready, reset-database]
+
+  test: pnpm test
+  e2e-run:
+    command: pnpm test:e2e
+    exclusive: true
+    hidden: true
+  e2e:
+    pipeline: [services, services-ready, e2e-run]
+  lint: pnpm lint
+  typecheck: pnpm typecheck
+  check:
+    pipeline: [lint, typecheck, test]

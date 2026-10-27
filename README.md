@@ -25,6 +25,10 @@ pnpm --filter @crm/api worker:dev   # optional: compiles LaTeX documents (needs 
 pnpm --filter @crm/web dev      # SPA on :5173, proxies /api and /mcp to :3000
 ```
 
+With [workforest](.workforest.yaml), `wf run dev` starts all of it in the background (`dev-full` adds the worker) and
+`wf run down` stops it. Worktrees (`wf create feature/x`) share the main checkout's `.env` and dev data (`.dev-data/`)
+through symlinks; one environment runs at a time, so `wf run dev` in a worktree stops the one running elsewhere.
+
 Open http://localhost:5173. The first account you create becomes the instance admin; after that, sign-up is
 invite-only.
 

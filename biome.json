@@ -10,7 +10,10 @@
       "!**/routeTree.gen.ts",
       "!**/drizzle/meta",
       "!**/*.md",
-      "!apps/api/openapi.json"
+      "!apps/api/openapi.json",
+      "!.dev-data",
+      "!**/test-results",
+      "!**/playwright-report"
     ]
   },
   "formatter": {
