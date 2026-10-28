@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, createRoute, createRouter, Outlet, redirect } from "@tanstack/react-router";
 import { authClient } from "./lib/auth";
+import { getLastProject } from "./lib/last-project";
 import { AccountPage } from "./pages/account";
 import { ConsentPage } from "./pages/auth/consent";
 import { LoginPage, SignupPage } from "./pages/auth/login";
@@ -39,7 +40,17 @@ const authedRoute = createRoute({
   component: Outlet,
 });
 
-const projectsRoute = createRoute({ getParentRoute: () => authedRoute, path: "/", component: ProjectsPage });
+const indexRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/",
+  beforeLoad: () => {
+    const projectId = getLastProject();
+    throw projectId
+      ? redirect({ to: "/p/$projectId", params: { projectId }, replace: true })
+      : redirect({ to: "/projects", replace: true });
+  },
+});
+const projectsRoute = createRoute({ getParentRoute: () => authedRoute, path: "/projects", component: ProjectsPage });
 const accountRoute = createRoute({ getParentRoute: () => authedRoute, path: "/account", component: AccountPage });
 
 const projectRoute = createRoute({
@@ -102,6 +113,7 @@ const routeTree = rootRoute.addChildren([
   signupRoute,
   consentRoute,
   authedRoute.addChildren([
+    indexRoute,
     projectsRoute,
     accountRoute,
     projectRoute.addChildren([

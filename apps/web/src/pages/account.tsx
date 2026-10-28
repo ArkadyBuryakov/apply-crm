@@ -16,7 +16,7 @@ export function AccountPage() {
   const me = useMe();
   return (
     <div className="mx-auto grid max-w-3xl gap-6 p-6">
-      <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+      <Link to="/projects" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
         <ChevronLeft className="size-3" /> Projects
       </Link>
       <PageHeader

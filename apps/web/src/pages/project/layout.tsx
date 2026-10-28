@@ -13,13 +13,14 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { Menu, MenuItem } from "@/components/ui/menu";
 import { Loading } from "@/components/ui/misc";
 import { api, unwrap } from "@/lib/api";
 import { authClient } from "@/lib/auth";
+import { clearLastProject, setLastProject } from "@/lib/last-project";
 import { useProject, useProjectMutation } from "@/lib/queries";
 import { cn, formatDateTime } from "@/lib/utils";
 
@@ -39,12 +40,17 @@ export function ProjectLayout() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
 
+  useEffect(() => {
+    if (project.isSuccess) setLastProject(projectId);
+    else if (project.isError) clearLastProject(projectId);
+  }, [projectId, project.isSuccess, project.isError]);
+
   if (project.isLoading) return <Loading />;
   if (project.isError) {
     return (
       <div className="p-6 text-sm">
         This project does not exist or you no longer have access.{" "}
-        <Link to="/" className="text-primary hover:underline">
+        <Link to="/projects" className="text-primary hover:underline">
           Back to your projects
         </Link>
       </div>
@@ -59,7 +65,10 @@ export function ProjectLayout() {
   return (
     <div className="flex min-h-full">
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-muted/30 p-3 md:flex">
-        <Link to="/" className="mb-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <Link
+          to="/projects"
+          className="mb-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
           <ChevronLeft className="size-3" /> All projects
         </Link>
         <div className="mb-4 truncate px-2 font-semibold" title={project.data?.name}>

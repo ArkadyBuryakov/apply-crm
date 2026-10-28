@@ -10,6 +10,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/form";
 import { PageHeader } from "@/components/ui/misc";
 import { api, type Stage, unwrap, uploadForm } from "@/lib/api";
+import { clearLastProject } from "@/lib/last-project";
 import {
   invalidateProject,
   useCan,
@@ -57,8 +58,9 @@ function GeneralSection({ projectId }: { projectId: string }) {
     {
       success: "Project deleted",
       onSuccess: async () => {
+        clearLastProject(projectId);
         await qc.invalidateQueries({ queryKey: ["projects"] });
-        navigate({ to: "/" });
+        navigate({ to: "/projects" });
       },
     },
   );
@@ -204,7 +206,13 @@ function MembersSection({ projectId }: { projectId: string }) {
   const leave = useProjectMutation(
     projectId,
     () => unwrap(api.POST("/api/projects/{projectId}/leave", { params: { path: { projectId } } })),
-    { success: "You left the project", onSuccess: () => navigate({ to: "/" }) },
+    {
+      success: "You left the project",
+      onSuccess: () => {
+        clearLastProject(projectId);
+        navigate({ to: "/projects" });
+      },
+    },
   );
 
   return (
