@@ -4,6 +4,7 @@ import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createDb } from "@crm/db";
 import { createApi, openApiInfo } from "../app.js";
+import { liveAiProviders } from "../assistant/providers.js";
 import { createAuth } from "../auth.js";
 import { loadEnv } from "../env.js";
 import { MemoryBlobStore } from "../services/blobs.js";
@@ -19,7 +20,7 @@ const api = createApi({
   db,
   auth: createAuth(db, env, { offline: true }),
   env,
-  services: { blobs: new MemoryBlobStore(), jobs: new MemoryJobQueue() },
+  services: { blobs: new MemoryBlobStore(), jobs: new MemoryJobQueue(), ai: liveAiProviders },
 });
 const doc = api.getOpenAPI31Document(openApiInfo(env.PUBLIC_URL));
 const out = fileURLToPath(new URL("../../openapi.json", import.meta.url));

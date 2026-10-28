@@ -48,3 +48,127 @@ test("first user sets up a project and logs an interaction", async ({ page }) =>
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page.getByLabel("MCP URL")).toHaveValue(/\/mcp\/projects\/prj_/);
 });
+
+// The assistant sidebar without a provider key (ADR 0031): it opens with Ctrl+J, stays open across navigation and
+// reloads, and points to the account page for keys. Talking to a model needs a real key and is not covered here.
+test("assistant sidebar opens and asks for a provider key", async ({ page }) => {
+  const request = page.request;
+  const credentials = { email: "ada@example.test", password: "correct horse battery" };
+  // Ada is the user the first test created.
+  await request.post("/api/auth/sign-in/email", { data: credentials, headers: { origin: "http://localhost:3100" } });
+  const project = await (
+    await request.post("/api/projects", { data: { name: "Assistant" }, headers: { origin: "http://localhost:3100" } })
+  ).json();
+
+  await page.goto(`/p/${project.id}/agenda`);
+  const sidebar = page.getByRole("complementary", { name: "Assistant" });
+  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
+  await expect(sidebar).toBeHidden();
+  await page.keyboard.press("Control+j");
+  await expect(sidebar).toBeVisible();
+  await expect(sidebar.getByText("To chat, add an API key")).toBeVisible();
+  if (process.env.SCREENSHOTS) await page.screenshot({ path: `${process.env.SCREENSHOTS}/assistant-no-key.png` });
+
+  await page.getByRole("link", { name: "Contacts" }).click();
+  await expect(sidebar).toBeVisible();
+  await page.reload();
+  await expect(sidebar).toBeVisible();
+
+  await sidebar.getByRole("button", { name: "Chat history" }).click();
+  await expect(sidebar.getByText("No chats yet.")).toBeVisible();
+  await sidebar.getByRole("button", { name: "Chat history" }).click();
+
+  await sidebar.getByRole("link", { name: "Add a key in Account → AI" }).click();
+  await expect(page.getByText("AI providers")).toBeVisible();
+  await expect(page.getByLabel("Anthropic API key")).toBeVisible();
+  await expect(page.getByLabel("OpenAI API key")).toBeVisible();
+  await expect(page.getByLabel("Google API key")).toBeVisible();
+
+  await page.goto(`/p/${project.id}`);
+  await sidebar.getByRole("button", { name: "Close assistant" }).click();
+  await expect(sidebar).toBeHidden();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
+  await expect(sidebar).toBeHidden();
+});
+
+/** A UI message stream (AI SDK SSE protocol) made of the given chunks. */
+function uiStream(chunks: object[]) {
+  return {
+    status: 200,
+    headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1" },
+    body: `${chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("")}data: [DONE]\n\n`,
+  };
+}
+
+// The model is stubbed at the HTTP boundary; chats, the navigation tool and its round trip are real.
+test("assistant navigates the app and continues with the result", async ({ page }) => {
+  const request = page.request;
+  await request.post("/api/auth/sign-in/email", {
+    data: { email: "ada@example.test", password: "correct horse battery" },
+    headers: { origin: "http://localhost:3100" },
+  });
+  const project = await (
+    await request.post("/api/projects", { data: { name: "Navigation" }, headers: { origin: "http://localhost:3100" } })
+  ).json();
+
+  await page.route("**/api/me/ai/models", (route) =>
+    route.fulfill({
+      json: {
+        items: [{ id: "anthropic:test-model", provider: "anthropic", modelId: "test-model", name: "Test model" }],
+        errors: [],
+      },
+    }),
+  );
+  const bodies: { message: { parts: { type: string; state?: string; output?: unknown }[] }; page: string }[] = [];
+  await page.route("**/chats/*/messages", (route) => {
+    bodies.push(route.request().postDataJSON());
+    if (bodies.length === 1) {
+      return route.fulfill(
+        uiStream([
+          { type: "start", messageId: "msg_1" },
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            toolCallId: "call_1",
+            toolName: "navigate",
+            input: { to: "/p/$projectId/contacts" },
+          },
+          { type: "finish-step" },
+          { type: "finish" },
+        ]),
+      );
+    }
+    return route.fulfill(
+      uiStream([
+        { type: "start", messageId: "msg_1" },
+        { type: "start-step" },
+        { type: "text-start", id: "t1" },
+        { type: "text-delta", id: "t1", delta: "Here are your **contacts**." },
+        { type: "text-end", id: "t1" },
+        { type: "finish-step" },
+        { type: "finish" },
+      ]),
+    );
+  });
+
+  await page.goto(`/p/${project.id}/agenda`);
+  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
+  await page.keyboard.press("Control+j");
+  const sidebar = page.getByRole("complementary", { name: "Assistant" });
+  await sidebar.getByLabel("Message").fill("Show my contacts");
+  await sidebar.getByLabel("Message").press("Enter");
+
+  await expect(page).toHaveURL(new RegExp(`/p/${project.id}/contacts$`));
+  await expect(sidebar.getByText("Here are your")).toBeVisible();
+  expect(bodies[0]!.page).toContain("/agenda");
+  const call = bodies[1]!.message.parts.find((p) => p.type === "tool-navigate");
+  expect(call).toMatchObject({ state: "output-available", output: { ok: true } });
+  await expect(sidebar.getByText("Show my contacts")).toBeVisible();
+  if (process.env.SCREENSHOTS) await page.screenshot({ path: `${process.env.SCREENSHOTS}/assistant-chat.png` });
+
+  // The chat was created on the first message and is remembered for this tab.
+  const chatId = await page.evaluate((id) => sessionStorage.getItem(`assistant.chat.${id}`), project.id);
+  expect(chatId).toMatch(/^cht_/);
+  expect(page.url()).toContain(project.id);
+});

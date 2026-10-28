@@ -19,6 +19,8 @@ export const ID_PREFIXES = {
   documentVersion: "dv",
   template: "tpl",
   templateVersion: "tv",
+  chat: "cht",
+  chatAttachment: "cha",
 } as const;
 
 export type IdKind = keyof typeof ID_PREFIXES;

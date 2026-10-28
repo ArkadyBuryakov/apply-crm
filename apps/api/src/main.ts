@@ -6,6 +6,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { secureHeaders } from "hono/secure-headers";
 import { createApi } from "./app.js";
+import { liveAiProviders } from "./assistant/providers.js";
 import { createAuth } from "./auth.js";
 import { loadEnv } from "./env.js";
 import { S3BlobStore } from "./services/blobs.js";
@@ -20,7 +21,7 @@ if (env.NODE_ENV !== "production") await blobs.ensureBucket();
 const { queue, boss } = await PgBossJobQueue.start(env.DATABASE_URL);
 
 const auth = createAuth(db, env);
-const api = createApi({ db, auth, env, services: { blobs, jobs: queue } });
+const api = createApi({ db, auth, env, services: { blobs, jobs: queue, ai: liveAiProviders } });
 
 const webDist = env.WEB_DIST_DIR ? path.resolve(env.WEB_DIST_DIR) : null;
 if (webDist && existsSync(path.join(webDist, "index.html"))) {

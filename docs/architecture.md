@@ -156,6 +156,7 @@ Fields and allowed statuses are listed in [`domain/action-types.md`](domain/acti
 | Background jobs | pg-boss in Postgres; v1 job: `document.compile` | 0024 |
 | Import/export | versioned JSON + zip, round-trippable; CSV import for positions | 0017 |
 | Backups | Coolify Postgres backups and a document mirror into a separate bucket with separate credentials | 0027 |
+| In-app assistant | sidebar chat in the SPA; agent loop in the API on the user's own provider key (Anthropic, OpenAI, Google); MCP catalog tools in-process, router-derived navigation tool run in the browser; chats private to their author | 0031 |
 
 ## Codebase
 

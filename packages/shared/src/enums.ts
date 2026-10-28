@@ -38,5 +38,13 @@ export type CompileStatus = (typeof COMPILE_STATUSES)[number];
 export const COMMENT_TARGETS = ["organization", "position", "contact", "action", "document"] as const;
 export type CommentTarget = (typeof COMMENT_TARGETS)[number];
 
-export const AUDIT_VIA = ["web", "api_key", "mcp"] as const;
+export const AUDIT_VIA = ["web", "api_key", "mcp", "chat"] as const;
 export type AuditVia = (typeof AUDIT_VIA)[number];
+
+// In-app assistant (ADR 0031)
+export const AI_PROVIDERS = ["anthropic", "openai", "google"] as const;
+export type AiProvider = (typeof AI_PROVIDERS)[number];
+
+/** Which CRM tool calls run without asking: none, reads, reads and writes, or everything. */
+export const CHAT_APPROVAL_MODES = ["manual", "read", "write", "all"] as const;
+export type ChatApprovalMode = (typeof CHAT_APPROVAL_MODES)[number];

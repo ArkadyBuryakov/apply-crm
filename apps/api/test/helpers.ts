@@ -5,6 +5,7 @@ import { createAuth } from "../src/auth.js";
 import { loadEnv } from "../src/env.js";
 import { MemoryBlobStore } from "../src/services/blobs.js";
 import { MemoryJobQueue } from "../src/services/jobs.js";
+import { FakeAi } from "./fake-ai.js";
 import { withDatabase } from "./global-setup.js";
 
 export const PUBLIC_URL = "http://localhost:3000";
@@ -27,8 +28,9 @@ export async function createTestApp() {
   const auth = createAuth(db, env);
   const blobs = new MemoryBlobStore();
   const jobs = new MemoryJobQueue();
-  const api = createApi({ db, auth, env, services: { blobs, jobs } });
-  return { api, db, auth, env, blobs, jobs, close: () => client.end() };
+  const ai = new FakeAi();
+  const api = createApi({ db, auth, env, services: { blobs, jobs, ai } });
+  return { api, db, auth, env, blobs, jobs, ai, close: () => client.end() };
 }
 
 export type TestApp = Awaited<ReturnType<typeof createTestApp>>;

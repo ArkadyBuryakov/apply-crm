@@ -573,7 +573,7 @@ async function templateView(tx: Tx, row: typeof documentTemplate.$inferSelect) {
   };
 }
 
-function asFiles(value: unknown): File[] {
+export function asFiles(value: unknown): File[] {
   const list = Array.isArray(value) ? value : [value];
   const files = list.filter((f): f is File => f instanceof File);
   if (files.length === 0) throw badRequest("Attach at least one file");

@@ -18,13 +18,23 @@ const SERVER_INFO = { name: "apply-crm", version: "1.0.0" };
 
 type McpCaller = { actor: Actor; role: ProjectRole };
 
-export function registerMcp(app: OpenAPIHono<AppEnv>, deps: Deps, getDocument: () => OpenApiDocument) {
+/** Shared by the MCP server and the in-app assistant (ADR 0031). */
+export const CRM_INSTRUCTIONS =
+  "Job-search CRM for one project. Positions are job openings at companies (optionally via agencies); actions " +
+  "are emails, meetings, interviews, applications, take-homes, offers, reference checks, rejections, tasks and " +
+  "notes, linked into a graph. Search before creating organizations or contacts. Start work on a position with " +
+  "getPositionOverview; record what happened with logInteraction. Updates need the entity's current `version`.";
+
+/** The tool catalog, built once from the OpenAPI document on first use. */
+export function lazyToolCatalog(getDocument: () => OpenApiDocument) {
   let catalog: ToolDefinition[] | undefined;
-  const tools = () => {
+  return () => {
     catalog ??= buildToolCatalog(getDocument());
     return catalog;
   };
+}
 
+export function registerMcp(app: OpenAPIHono<AppEnv>, deps: Deps, tools: () => ToolDefinition[]) {
   // OAuth discovery at the root, where MCP clients look for it (RFC 8414 / RFC 9728).
   const authServerMetadata = oauthProviderAuthServerMetadata(deps.auth);
   const openIdMetadata = oauthProviderOpenIdConfigMetadata(deps.auth);
@@ -153,13 +163,7 @@ async function verifyAccessToken(deps: Deps, token: string, resource: string): P
 }
 
 function buildServer(app: OpenAPIHono<AppEnv>, tools: ToolDefinition[], actor: Actor, projectPublicId: string) {
-  const server = new McpServer(SERVER_INFO, {
-    instructions:
-      "Job-search CRM for one project. Positions are job openings at companies (optionally via agencies); actions " +
-      "are emails, meetings, interviews, applications, take-homes, offers, reference checks, rejections, tasks and " +
-      "notes, linked into a graph. Search before creating organizations or contacts. Start work on a position with " +
-      "getPositionOverview; record what happened with logInteraction. Updates need the entity's current `version`.",
-  });
+  const server = new McpServer(SERVER_INFO, { instructions: CRM_INSTRUCTIONS });
   for (const tool of tools) {
     server.registerTool(
       tool.name,
@@ -185,11 +189,34 @@ async function callTool(
   projectPublicId: string,
   args: Record<string, unknown>,
 ) {
+  const result = await invokeTool(app, tool, actor, projectPublicId, args);
+  if (result.status === 204) return { content: [{ type: "text" as const, text: "Done." }] };
+  const { body } = result;
+  return {
+    ...(result.ok ? {} : { isError: true }),
+    content: [{ type: "text" as const, text: typeof body === "string" ? body : JSON.stringify(body) }],
+    ...(result.ok && body && typeof body === "object" && !Array.isArray(body)
+      ? { structuredContent: body as Record<string, unknown> }
+      : {}),
+  };
+}
+
+/**
+ * Runs a catalog tool as an in-process request to the API on behalf of `actor`, so validation, authorization and
+ * audit are exactly those of the REST call. Bad arguments come back as a 400 result rather than an exception.
+ */
+export async function invokeTool(
+  app: OpenAPIHono<AppEnv>,
+  tool: ToolDefinition,
+  actor: Actor,
+  projectPublicId: string,
+  args: Record<string, unknown>,
+): Promise<{ ok: boolean; status: number; body: unknown }> {
   let request: ReturnType<typeof toHttpRequest>;
   try {
     request = toHttpRequest(tool, projectPublicId, args);
   } catch (err) {
-    return { isError: true, content: [{ type: "text" as const, text: String((err as Error).message) }] };
+    return { ok: false, status: 400, body: String((err as Error).message) };
   }
   const res = await app.request(
     request.url,
@@ -201,19 +228,11 @@ async function callTool(
     { internalActor: actor },
   );
   const text = await res.text();
-  if (res.status === 204) return { content: [{ type: "text" as const, text: "Done." }] };
-  let json: unknown = text;
+  let body: unknown = text;
   try {
-    json = text ? JSON.parse(text) : null;
+    body = text ? JSON.parse(text) : null;
   } catch {
     // keep text
   }
-  const isError = res.status >= 400;
-  return {
-    ...(isError ? { isError: true } : {}),
-    content: [{ type: "text" as const, text: typeof json === "string" ? json : JSON.stringify(json) }],
-    ...(!isError && json && typeof json === "object" && !Array.isArray(json)
-      ? { structuredContent: json as Record<string, unknown> }
-      : {}),
-  };
+  return { ok: res.status < 400, status: res.status, body };
 }
