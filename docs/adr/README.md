@@ -29,7 +29,7 @@ Records are never edited after acceptance except to change status. To revise a d
 | 0022 | [Testing strategy](0022-testing-strategy.md) | Accepted |
 | 0023 | [v1 scope](0023-v1-scope.md) | Accepted |
 | 0024 | [Background worker (pg-boss)](0024-background-worker.md) | Accepted, amends 0011, 0016 |
-| 0025 | [LaTeX documents, templates and compilation](0025-latex-documents.md) | Accepted, refines 0006 |
+| 0025 | [LaTeX documents, templates and compilation](0025-latex-documents.md) | Accepted, refines 0006; amended 2026-10-28 |
 | 0026 | [Position listing content](0026-position-listing-content.md) | Accepted, refines 0002 |
 | 0027 | [Hosting on Coolify and backups](0027-hosting-and-backups.md) | Accepted, refines 0011 |
 | 0028 | [Repository hygiene and license](0028-repository-hygiene-and-license.md) | Accepted |

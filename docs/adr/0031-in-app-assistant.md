@@ -48,6 +48,10 @@ from claude.ai through the MCP connector.
 - **Web search** uses each provider's built-in tool (Anthropic web search and web fetch, OpenAI web search, Google
   Search grounding) and is toggled per chat. Searches are billed to the user's key.
 
+- **Reading documents**: a new API operation, `readDocumentVersion` (also an MCP tool), returns the text of any
+  document version: LaTeX sources, uploaded text files as they are, and text extracted from PDFs (`unpdf`) and Word
+  files (the `.docx` XML, read with `fflate`). Without it, models only saw the metadata of uploaded files.
+
 ### Attachments
 - Images, PDFs and text files (Markdown, LaTeX, CSV, JSON, plain text) up to 20 MB, uploaded to object storage under
   `projects/{projectId}/chats/{chatId}/`. Messages reference them by URL; the server inlines the bytes when calling

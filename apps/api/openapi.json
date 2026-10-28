@@ -3450,6 +3450,50 @@
           }
         ]
       },
+      "DocumentText": {
+        "type": "object",
+        "properties": {
+          "versionId": {
+            "type": "string",
+            "pattern": "^dv_[0-9A-HJKMNP-TV-Z]{26}$",
+            "example": "dv_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+            "description": "documentVersion ID"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "latex",
+              "text",
+              "pdf",
+              "docx"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "totalPages": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Page count, for PDFs"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "versionId",
+          "filename",
+          "format",
+          "text",
+          "totalPages",
+          "truncated"
+        ]
+      },
       "Template": {
         "type": "object",
         "properties": {
@@ -13320,7 +13364,7 @@
       "post": {
         "operationId": "createLatexVersion",
         "summary": "Add a LaTeX version to a document",
-        "description": "Stores LaTeX source as a new immutable version and queues PDF compilation with the given template version (its .cls and other files sit next to the source). Typical flow for tailoring: read the main resume version with getDocumentVersion, edit the source, create a tailored document and add the edited source here. Poll getDocumentVersion for `compileStatus`.",
+        "description": "Stores LaTeX source as a new immutable version and queues PDF compilation with the given template version (its .cls and other files sit next to the source). Without `templateVersionId`, the latest version of the template this document used last is taken, or of the template providing the `\\documentclass`; pass null to compile without a template. Typical flow for tailoring: read the main resume version with readDocumentVersion, edit the source, create a tailored document and add the edited source here. Poll getDocumentVersion for `compileStatus`.",
         "tags": [
           "Documents"
         ],
@@ -13384,7 +13428,7 @@
                     ],
                     "pattern": "^tv_[0-9A-HJKMNP-TV-Z]{26}$",
                     "example": "tv_01JBX3V6Q9W2G8K4M7N5P0R1S2",
-                    "description": "templateVersion ID"
+                    "description": "Omit to pick the template automatically; null for none"
                   },
                   "filename": {
                     "type": "string",
@@ -13467,7 +13511,7 @@
       "post": {
         "operationId": "uploadDocumentVersion",
         "summary": "Upload a file as a new document version",
-        "description": "Stores any file (PDF, DOCX, ZIP, …) up to 20 MB as a new version.",
+        "description": "Stores any file (PDF, DOCX, ZIP, …) up to 20 MB as a new version. A .tex file becomes a LaTeX version instead, compiled with the template picked as in createLatexVersion.",
         "tags": [
           "Documents"
         ],
@@ -13593,7 +13637,7 @@
       "get": {
         "operationId": "getDocumentVersion",
         "summary": "Get a document version with its source",
-        "description": "Returns version metadata, the LaTeX source (for LaTeX versions), compile status and log.",
+        "description": "Returns version metadata, the LaTeX source (for LaTeX versions), compile status and log. For the text of an uploaded file (PDF, Word, .tex, Markdown, …) use readDocumentVersion.",
         "tags": [
           "Documents"
         ],
@@ -13673,6 +13717,121 @@
           },
           "404": {
             "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/documents/{documentId}/versions/{versionId}/text": {
+      "get": {
+        "operationId": "readDocumentVersion",
+        "summary": "Read the text of a document version",
+        "description": "The text content of any version: the source of a LaTeX version, uploaded text files (.tex, .md, .txt, …) as they are, and text extracted from PDFs (page by page) and Word (.docx) files. Formatting and images are lost. Long texts are cut at 200,000 characters.",
+        "tags": [
+          "Documents"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "document:read"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^doc_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "doc_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "document ID"
+            },
+            "required": true,
+            "description": "document ID",
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^dv_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "dv_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "documentVersion ID"
+            },
+            "required": true,
+            "description": "documentVersion ID",
+            "name": "versionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Text",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentText"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicts with existing data",
             "content": {
               "application/json": {
                 "schema": {

@@ -23,7 +23,8 @@ export const CRM_INSTRUCTIONS =
   "Job-search CRM for one project. Positions are job openings at companies (optionally via agencies); actions " +
   "are emails, meetings, interviews, applications, take-homes, offers, reference checks, rejections, tasks and " +
   "notes, linked into a graph. Search before creating organizations or contacts. Start work on a position with " +
-  "getPositionOverview; record what happened with logInteraction. Updates need the entity's current `version`.";
+  "getPositionOverview; record what happened with logInteraction. Read a document's contents (resumes, offer " +
+  "letters, …) with readDocumentVersion. Updates need the entity's current `version`.";
 
 /** The tool catalog, built once from the OpenAPI document on first use. */
 export function lazyToolCatalog(getDocument: () => OpenApiDocument) {

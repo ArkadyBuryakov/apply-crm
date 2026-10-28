@@ -35,6 +35,15 @@ A CLI script (`scripts/import-resumes`) takes a directory path **as an argument*
 Each subfolder becomes a position (named from the folder) plus a tailored resume version derived from the main resume.
 The `.cls` file becomes the template. Real paths and data are never committed (ADR 0028).
 
+### Amendment (2026-10-28): uploads and template choice
+- Uploading a `.tex` file creates a LaTeX version (source in Postgres, compiled), never a plain file version, so an
+  uploaded resume gets the same compile and PDF preview as one written in the editor.
+- When no template version is given, the latest version of the template the document's newest LaTeX version used is
+  pinned; for a document without one, the template whose latest version provides the class named in
+  `\documentclass`. An explicit `null` compiles without a template.
+- A local worker without `TECTONIC_CACHE_DIR` caches Tectonic's bundle in the user's cache directory, since `HOME` is
+  the per-job temp directory.
+
 ## Consequences
 - The worker image is larger (Tectonic plus its bundle, roughly hundreds of MB). The API image can stay slim if the two are split later.
 - A template file must work with Tectonic's XeTeX-based engine. Class files that rely on pdfLaTeX-only packages may need adjustment.
