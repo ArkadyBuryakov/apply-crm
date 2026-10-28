@@ -10,15 +10,18 @@ import {
   LogOut,
   Network,
   Settings,
+  Sparkles,
   UserRound,
   Users,
 } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, useEffect, useState } from "react";
+import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form";
 import { Menu, MenuItem } from "@/components/ui/menu";
 import { Loading } from "@/components/ui/misc";
 import { api, unwrap } from "@/lib/api";
+import { panelOpen, panelWidth } from "@/lib/assistant-prefs";
 import { authClient } from "@/lib/auth";
 import { clearLastProject, setLastProject } from "@/lib/last-project";
 import { useProject, useProjectMutation } from "@/lib/queries";
@@ -39,6 +42,26 @@ export function ProjectLayout() {
   const project = useProject(projectId);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [assistantOpen, setAssistantOpen] = useState(panelOpen.get);
+
+  function toggleAssistant(open = !assistantOpen) {
+    setAssistantOpen(open);
+    panelOpen.set(open);
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setAssistantOpen((open) => {
+          panelOpen.set(!open);
+          return !open;
+        });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     if (project.isSuccess) setLastProject(projectId);
@@ -102,6 +125,17 @@ export function ProjectLayout() {
             />
           </form>
           <MobileNav projectId={projectId} />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Assistant"
+            aria-pressed={assistantOpen}
+            title="Assistant (Ctrl+J)"
+            className={cn(assistantOpen && "bg-muted")}
+            onClick={() => toggleAssistant()}
+          >
+            <Sparkles />
+          </Button>
           <Notifications projectId={projectId} />
           <Menu
             trigger={
@@ -127,7 +161,57 @@ export function ProjectLayout() {
           <Outlet />
         </main>
       </div>
+      {assistantOpen ? (
+        <AssistantSidebar>
+          <AssistantPanel key={projectId} projectId={projectId} onClose={() => toggleAssistant(false)} />
+        </AssistantSidebar>
+      ) : null}
     </div>
+  );
+}
+
+const MIN_WIDTH = 320;
+
+/** Full screen on phones; a resizable column beside the page from md up. */
+function AssistantSidebar({ children }: { children: ReactNode }) {
+  const [width, setWidth] = useState(panelWidth.get);
+
+  function startResize(e: PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    const move = (ev: globalThis.PointerEvent) => {
+      const max = Math.max(MIN_WIDTH, window.innerWidth * 0.6);
+      setWidth(Math.min(max, Math.max(MIN_WIDTH, window.innerWidth - ev.clientX)));
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      setWidth((w) => {
+        panelWidth.set(w);
+        return w;
+      });
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+  }
+
+  return (
+    <aside
+      aria-label="Assistant"
+      style={{ "--assistant-width": `${width}px` } as CSSProperties}
+      className="fixed inset-0 z-40 flex bg-background md:sticky md:top-0 md:z-auto md:h-screen md:w-[var(--assistant-width)] md:shrink-0 md:border-l md:border-border"
+    >
+      {/* biome-ignore lint/a11y/useSemanticElements: an interactive splitter, which <hr> cannot be */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize assistant"
+        onPointerDown={startResize}
+        className="hidden w-1 shrink-0 cursor-col-resize hover:bg-primary/30 md:block"
+      />
+      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+    </aside>
   );
 }
 

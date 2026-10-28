@@ -15,6 +15,13 @@
       "when": 1793024845585,
       "tag": "0001_membership_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793182708266,
+      "tag": "0002_assistant_chat",
+      "breakpoints": true
     }
   ]
 }

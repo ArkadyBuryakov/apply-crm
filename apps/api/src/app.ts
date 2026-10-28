@@ -6,7 +6,8 @@ import type { Env } from "./env.js";
 import { ApiError, errorBody } from "./http/errors.js";
 import { projectScope, resolveActor } from "./http/middleware.js";
 import type { AppEnv, Deps } from "./http/types.js";
-import { registerMcp } from "./mcp/server.js";
+import { lazyToolCatalog, registerMcp } from "./mcp/server.js";
+import { registerAssistantRoutes } from "./routes/assistant.js";
 import { registerApiRoutes } from "./routes/index.js";
 import type { Services } from "./services/index.js";
 
@@ -46,6 +47,9 @@ export function createApi(deps: { db: Db; auth: Auth; env: Env; services: Servic
   app.use("/api/projects/:projectId", async (c, next) => (c.req.method === "POST" ? next() : projectScope(c, next)));
 
   registerApiRoutes(app);
+  const getDocument = () => app.getOpenAPI31Document(openApiInfo(deps.env.PUBLIC_URL)) as never;
+  const tools = lazyToolCatalog(getDocument);
+  registerAssistantRoutes(app, tools);
 
   app.openAPIRegistry.registerComponent("securitySchemes", "session", {
     type: "apiKey",
@@ -59,7 +63,7 @@ export function createApi(deps: { db: Db; auth: Auth; env: Env; services: Servic
   });
 
   app.doc31("/api/openapi.json", openApiInfo(deps.env.PUBLIC_URL));
-  registerMcp(app, deps as Deps, () => app.getOpenAPI31Document(openApiInfo(deps.env.PUBLIC_URL)) as never);
+  registerMcp(app, deps as Deps, tools);
 
   return app;
 }

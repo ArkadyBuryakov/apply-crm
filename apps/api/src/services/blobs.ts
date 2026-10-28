@@ -15,6 +15,8 @@ export const blobKeys = {
   pdf: (projectId: string, versionId: string) => `projects/${projectId}/documents/${versionId}/output.pdf`,
   templateFile: (projectId: string, templateVersionId: string, name: string) =>
     `projects/${projectId}/templates/${templateVersionId}/${name}`,
+  chatAttachment: (projectId: string, chatId: string, attachmentId: string) =>
+    `projects/${projectId}/chats/${chatId}/${attachmentId}`,
 };
 
 export interface BlobStore {

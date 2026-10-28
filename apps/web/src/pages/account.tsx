@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
 import { PageHeader } from "@/components/ui/misc";
-import { api, unwrap } from "@/lib/api";
+import { api, type Schemas, unwrap } from "@/lib/api";
 import { authClient } from "@/lib/auth";
 import { errorMessage, useMe } from "@/lib/queries";
 import { formatDateTime } from "@/lib/utils";
@@ -36,6 +36,7 @@ export function AccountPage() {
       />
       {me.data ? <ProfileCard name={me.data.name} timezone={me.data.timezone} /> : null}
       <ApiKeysCard />
+      <AiProvidersCard />
       {me.data?.isInstanceAdmin ? <InstanceInvitationsCard /> : null}
     </div>
   );
@@ -171,6 +172,112 @@ function ApiKeysCard() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+type AiProvider = Schemas["AiProviderStatus"]["provider"];
+
+const KEY_PAGES: Record<AiProvider, string> = {
+  anthropic: "https://platform.claude.com/settings/keys",
+  openai: "https://platform.openai.com/api-keys",
+  google: "https://aistudio.google.com/apikey",
+};
+
+/** Keys for the in-app assistant (ADR 0031). */
+function AiProvidersCard() {
+  const qc = useQueryClient();
+  const providers = useQuery({
+    queryKey: ["ai-providers"],
+    queryFn: () => unwrap(api.GET("/api/me/ai/providers")),
+  });
+  const refresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["ai-providers"] });
+    await qc.invalidateQueries({ queryKey: ["ai-models"] });
+  };
+  return (
+    <Card id="ai">
+      <CardHeader>
+        <CardTitle>AI providers</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 text-sm">
+        <p className="text-muted-foreground">
+          The assistant runs on your own API keys and is billed to them, including web searches. Keys are stored
+          encrypted and never shown again. Claude Pro and Max subscriptions cannot be used here; connect Claude.ai to
+          this project's MCP server instead (project settings).
+        </p>
+        {providers.data?.items.map((p) => (
+          <ProviderKeyRow key={p.provider} status={p} onChange={refresh} />
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProviderKeyRow({ status, onChange }: { status: Schemas["AiProviderStatus"]; onChange: () => Promise<void> }) {
+  const [apiKey, setApiKey] = useState("");
+  const params = { params: { path: { provider: status.provider } } };
+  const save = useMutation({
+    mutationFn: () => unwrap(api.PUT("/api/me/ai/providers/{provider}", { ...params, body: { apiKey } })),
+    onSuccess: async () => {
+      setApiKey("");
+      toast.success(`${status.name} key saved`);
+      await onChange();
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const remove = useMutation({
+    mutationFn: () => unwrap(api.DELETE("/api/me/ai/providers/{provider}", params)),
+    onSuccess: onChange,
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex items-center gap-2">
+        <span className="font-medium">{status.name}</span>
+        {status.configured ? (
+          <span className="font-mono text-xs text-muted-foreground">…{status.last4}</span>
+        ) : (
+          <a
+            href={KEY_PAGES[status.provider]}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary hover:underline"
+          >
+            Get a key
+          </a>
+        )}
+        {status.configured ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto"
+            aria-label={`Remove ${status.name} key`}
+            onClick={() => remove.mutate()}
+          >
+            <Trash2 />
+          </Button>
+        ) : null}
+      </div>
+      <form
+        className="flex max-w-md gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (apiKey.trim()) save.mutate();
+        }}
+      >
+        <Input
+          type="password"
+          autoComplete="off"
+          placeholder={status.configured ? "Replace key" : "API key"}
+          aria-label={`${status.name} API key`}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+        />
+        <Button type="submit" disabled={!apiKey.trim() || save.isPending}>
+          {save.isPending ? "Checking…" : "Save"}
+        </Button>
+      </form>
+    </div>
   );
 }
 

@@ -2980,7 +2980,8 @@
             "enum": [
               "web",
               "api_key",
-              "mcp"
+              "mcp",
+              "chat"
             ]
           },
           "entityType": {
@@ -3449,6 +3450,50 @@
           }
         ]
       },
+      "DocumentText": {
+        "type": "object",
+        "properties": {
+          "versionId": {
+            "type": "string",
+            "pattern": "^dv_[0-9A-HJKMNP-TV-Z]{26}$",
+            "example": "dv_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+            "description": "documentVersion ID"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "latex",
+              "text",
+              "pdf",
+              "docx"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "totalPages": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Page count, for PDFs"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "versionId",
+          "filename",
+          "format",
+          "text",
+          "totalPages",
+          "truncated"
+        ]
+      },
       "Template": {
         "type": "object",
         "properties": {
@@ -3588,6 +3633,197 @@
           "comments"
         ],
         "description": "Number of entities created"
+      },
+      "AiProviderStatus": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/AiProvider"
+          },
+          "name": {
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "last4": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Last four characters of the stored key"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          }
+        },
+        "required": [
+          "provider",
+          "name",
+          "configured",
+          "last4",
+          "updatedAt"
+        ]
+      },
+      "AiProvider": {
+        "type": "string",
+        "enum": [
+          "anthropic",
+          "openai",
+          "google"
+        ]
+      },
+      "AiModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "provider:modelId, as stored on chats",
+            "example": "anthropic:claude-opus-5-5"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AiProvider"
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "modelId",
+          "name"
+        ]
+      },
+      "Chat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+            "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+            "description": "chat ID"
+          },
+          "title": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "approvalMode": {
+            "$ref": "#/components/schemas/ChatApprovalMode"
+          },
+          "webSearch": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "model",
+          "approvalMode",
+          "webSearch",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ChatApprovalMode": {
+        "type": "string",
+        "enum": [
+          "manual",
+          "read",
+          "write",
+          "all"
+        ],
+        "description": "Which CRM tool calls run without asking: manual (none), read (reads), write (reads and writes), all (also deletes)"
+      },
+      "ChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ]
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "metadata": {}
+        },
+        "required": [
+          "id",
+          "role",
+          "parts"
+        ],
+        "additionalProperties": {},
+        "description": "An AI SDK UIMessage"
+      },
+      "ChatAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^cha_[0-9A-HJKMNP-TV-Z]{26}$",
+            "example": "cha_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+            "description": "chatAttachment ID"
+          },
+          "url": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "filename",
+          "mediaType",
+          "size"
+        ]
       }
     },
     "parameters": {}
@@ -13128,7 +13364,7 @@
       "post": {
         "operationId": "createLatexVersion",
         "summary": "Add a LaTeX version to a document",
-        "description": "Stores LaTeX source as a new immutable version and queues PDF compilation with the given template version (its .cls and other files sit next to the source). Typical flow for tailoring: read the main resume version with getDocumentVersion, edit the source, create a tailored document and add the edited source here. Poll getDocumentVersion for `compileStatus`.",
+        "description": "Stores LaTeX source as a new immutable version and queues PDF compilation with the given template version (its .cls and other files sit next to the source). Without `templateVersionId`, the latest version of the template this document used last is taken, or of the template providing the `\\documentclass`; pass null to compile without a template. Typical flow for tailoring: read the main resume version with readDocumentVersion, edit the source, create a tailored document and add the edited source here. Poll getDocumentVersion for `compileStatus`.",
         "tags": [
           "Documents"
         ],
@@ -13192,7 +13428,7 @@
                     ],
                     "pattern": "^tv_[0-9A-HJKMNP-TV-Z]{26}$",
                     "example": "tv_01JBX3V6Q9W2G8K4M7N5P0R1S2",
-                    "description": "templateVersion ID"
+                    "description": "Omit to pick the template automatically; null for none"
                   },
                   "filename": {
                     "type": "string",
@@ -13275,7 +13511,7 @@
       "post": {
         "operationId": "uploadDocumentVersion",
         "summary": "Upload a file as a new document version",
-        "description": "Stores any file (PDF, DOCX, ZIP, …) up to 20 MB as a new version.",
+        "description": "Stores any file (PDF, DOCX, ZIP, …) up to 20 MB as a new version. A .tex file becomes a LaTeX version instead, compiled with the template picked as in createLatexVersion.",
         "tags": [
           "Documents"
         ],
@@ -13401,7 +13637,7 @@
       "get": {
         "operationId": "getDocumentVersion",
         "summary": "Get a document version with its source",
-        "description": "Returns version metadata, the LaTeX source (for LaTeX versions), compile status and log.",
+        "description": "Returns version metadata, the LaTeX source (for LaTeX versions), compile status and log. For the text of an uploaded file (PDF, Word, .tex, Markdown, …) use readDocumentVersion.",
         "tags": [
           "Documents"
         ],
@@ -13481,6 +13717,121 @@
           },
           "404": {
             "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/documents/{documentId}/versions/{versionId}/text": {
+      "get": {
+        "operationId": "readDocumentVersion",
+        "summary": "Read the text of a document version",
+        "description": "The text content of any version: the source of a LaTeX version, uploaded text files (.tex, .md, .txt, …) as they are, and text extracted from PDFs (page by page) and Word (.docx) files. Formatting and images are lost. Long texts are cut at 200,000 characters.",
+        "tags": [
+          "Documents"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "document:read"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^doc_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "doc_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "document ID"
+            },
+            "required": true,
+            "description": "document ID",
+            "name": "documentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^dv_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "dv_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "documentVersion ID"
+            },
+            "required": true,
+            "description": "documentVersion ID",
+            "name": "versionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Text",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentText"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicts with existing data",
             "content": {
               "application/json": {
                 "schema": {
@@ -14646,6 +14997,1040 @@
           },
           "403": {
             "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/ai/providers": {
+      "get": {
+        "operationId": "listAiProviders",
+        "summary": "List model providers and whether you have a key for each",
+        "description": "Keys are never returned, only their last four characters.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AiProviderStatus"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/ai/providers/{provider}": {
+      "put": {
+        "operationId": "setAiProviderKey",
+        "summary": "Save your API key for a model provider",
+        "description": "The key is checked by listing the provider's models, then stored encrypted.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AiProvider"
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiKey": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "apiKey"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiProviderStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAiProviderKey",
+        "summary": "Remove your API key for a model provider",
+        "description": "Chats using this provider's models stop working until a key is saved again.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/AiProvider"
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done"
+          }
+        }
+      }
+    },
+    "/api/me/ai/models": {
+      "get": {
+        "operationId": "listAiModels",
+        "summary": "List the models your keys can use",
+        "description": "Fetched live from each provider you have a key for. Providers that fail are listed in `errors`.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AiModel"
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "provider": {
+                            "$ref": "#/components/schemas/AiProvider"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "provider",
+                          "message"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "errors"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/chats": {
+      "get": {
+        "operationId": "listChats",
+        "summary": "List your chats in this project",
+        "description": "Most recently used first. Chats are private: other members never see them.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Chat"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createChat",
+        "summary": "Start a chat",
+        "description": "Creates an empty chat; send messages to it with sendChatMessage.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "example": "anthropic:claude-opus-5-5"
+                  },
+                  "approvalMode": {
+                    "$ref": "#/components/schemas/ChatApprovalMode"
+                  },
+                  "webSearch": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chat"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/chats/{chatId}": {
+      "get": {
+        "operationId": "getChat",
+        "summary": "Get a chat with its messages",
+        "description": "Messages are AI SDK UIMessages, oldest first.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chat ID"
+            },
+            "required": true,
+            "description": "chat ID",
+            "name": "chatId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Chat"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ChatMessage"
+                          }
+                        }
+                      },
+                      "required": [
+                        "messages"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateChat",
+        "summary": "Rename a chat or change its model, approval mode or web search",
+        "description": "Changes apply from the next message on.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chat ID"
+            },
+            "required": true,
+            "description": "chat ID",
+            "name": "chatId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "model": {
+                    "type": "string",
+                    "example": "anthropic:claude-opus-5-5"
+                  },
+                  "approvalMode": {
+                    "$ref": "#/components/schemas/ChatApprovalMode"
+                  },
+                  "webSearch": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chat"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteChat",
+        "summary": "Delete a chat",
+        "description": "Deletes the chat, its messages and its attachments permanently.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chat ID"
+            },
+            "required": true,
+            "description": "chat ID",
+            "name": "chatId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/chats/{chatId}/messages": {
+      "post": {
+        "operationId": "sendChatMessage",
+        "summary": "Send a message and stream the assistant's reply",
+        "description": "Send only the newest message: a new user message, or the latest assistant message again after answering an approval request or a navigation call. The reply is an AI SDK UI message stream (server-sent events). `navigation` is the browser-executed navigation tool; `page` is the path the user is looking at.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chat ID"
+            },
+            "required": true,
+            "description": "chat ID",
+            "name": "chatId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "$ref": "#/components/schemas/ChatMessage"
+                  },
+                  "navigation": {
+                    "type": "object",
+                    "properties": {
+                      "description": {
+                        "type": "string",
+                        "maxLength": 50000
+                      },
+                      "inputSchema": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "description",
+                      "inputSchema"
+                    ]
+                  },
+                  "page": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "UI message stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/chats/{chatId}/attachments": {
+      "post": {
+        "operationId": "uploadChatAttachment",
+        "summary": "Attach a file to a chat",
+        "description": "Images (PNG, JPEG, WebP, GIF), PDFs and text files (Markdown, LaTeX, CSV, JSON, …) up to 20 MB. Reference the returned URL in a message's file part.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chat ID"
+            },
+            "required": true,
+            "description": "chat ID",
+            "name": "chatId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatAttachment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/chats/{chatId}/attachments/{attachmentId}": {
+      "get": {
+        "operationId": "downloadChatAttachment",
+        "summary": "Download a chat attachment",
+        "description": "The file as uploaded.",
+        "tags": [
+          "Assistant"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cht_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cht_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chat ID"
+            },
+            "required": true,
+            "description": "chat ID",
+            "name": "chatId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cha_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "cha_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "chatAttachment ID"
+            },
+            "required": true,
+            "description": "chatAttachment ID",
+            "name": "attachmentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
             "content": {
               "application/json": {
                 "schema": {

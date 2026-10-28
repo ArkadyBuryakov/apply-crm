@@ -12,7 +12,7 @@ import {
 import { COMPILE_STATUSES, DOCUMENT_KINDS, newUuid } from "@crm/shared";
 import { type OpenAPIHono, z } from "@hono/zod-openapi";
 import { and, asc, desc, eq, isNotNull, isNull, type SQL, sql } from "drizzle-orm";
-import { badRequest, errorResponses, notFound } from "../http/errors.js";
+import { badRequest, conflict, errorResponses, notFound } from "../http/errors.js";
 import {
   defineRoute,
   etag,
@@ -20,6 +20,7 @@ import {
   jsonBody,
   jsonResponse,
   NoContent,
+  optionalUuidOf,
   ProjectParams,
   pathId,
   publicId,
@@ -33,6 +34,7 @@ import { iso, isoOrNull, pid, pidOrNull } from "../http/serialize.js";
 import type { AppEnv } from "../http/types.js";
 import { type BlobStore, blobKeys } from "../services/blobs.js";
 import { audit, requireVisible, restore, type Scope, softDelete, updateVersioned, visible } from "../services/core.js";
+import { extractFileText, MAX_TEXT_CHARS, textFormatOf, truncate } from "../services/document-text.js";
 import { diffOf } from "./organizations.js";
 
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -196,21 +198,70 @@ export function safeFilename(name: string) {
 }
 
 /** Creates a LaTeX version and queues its compilation (ADR 0024, 0025). */
-export async function createLatexVersion(
-  tx: Tx,
-  s: Scope,
-  documentId: string,
-  input: { source: string; templateVersionId: string | null; filename: string },
-) {
-  if (input.templateVersionId) {
+/**
+ * The template version a new LaTeX version of `documentId` should compile with when none is given: the latest version
+ * of the template the document's newest LaTeX version used, otherwise of the template providing the class named in
+ * `\documentclass`. Null when neither applies (standard classes need no template).
+ */
+async function inferTemplateVersion(tx: Tx, s: Scope, documentId: string, source: string) {
+  const latestOf = async (templateId: string) => {
     const [tv] = await tx
       .select({ id: documentTemplateVersion.id })
       .from(documentTemplateVersion)
       .where(
-        and(
-          eq(documentTemplateVersion.projectId, s.projectId),
-          eq(documentTemplateVersion.id, input.templateVersionId),
-        ),
+        and(eq(documentTemplateVersion.projectId, s.projectId), eq(documentTemplateVersion.templateId, templateId)),
+      )
+      .orderBy(desc(documentTemplateVersion.versionNo))
+      .limit(1);
+    return tv?.id ?? null;
+  };
+
+  const [previous] = await tx
+    .select({ templateId: documentTemplateVersion.templateId })
+    .from(documentVersion)
+    .innerJoin(documentTemplateVersion, eq(documentTemplateVersion.id, documentVersion.templateVersionId))
+    .innerJoin(documentTemplate, eq(documentTemplate.id, documentTemplateVersion.templateId))
+    .where(and(eq(documentVersion.documentId, documentId), isNull(documentTemplate.deletedAt)))
+    .orderBy(desc(documentVersion.versionNo))
+    .limit(1);
+  if (previous) return latestOf(previous.templateId);
+
+  const documentClass = /^[^%\n]*\\documentclass(?:\[[^\]]*\])?\{([^}]+)\}/m.exec(source)?.[1]?.trim();
+  if (!documentClass) return null;
+  const templates = await tx
+    .select({ id: documentTemplate.id })
+    .from(documentTemplate)
+    .where(and(eq(documentTemplate.projectId, s.projectId), isNull(documentTemplate.deletedAt)))
+    .orderBy(desc(documentTemplate.updatedAt));
+  for (const template of templates) {
+    const [tv] = await tx
+      .select({ id: documentTemplateVersion.id, files: documentTemplateVersion.files })
+      .from(documentTemplateVersion)
+      .where(eq(documentTemplateVersion.templateId, template.id))
+      .orderBy(desc(documentTemplateVersion.versionNo))
+      .limit(1);
+    if (tv?.files.some((f) => f.name === `${documentClass}.cls`)) return tv.id;
+  }
+  return null;
+}
+
+/** `templateVersionId: undefined` picks the template with inferTemplateVersion; null compiles without one. */
+export async function createLatexVersion(
+  tx: Tx,
+  s: Scope,
+  documentId: string,
+  input: { source: string; templateVersionId: string | null | undefined; filename: string },
+) {
+  const templateVersionId =
+    input.templateVersionId === undefined
+      ? await inferTemplateVersion(tx, s, documentId, input.source)
+      : input.templateVersionId;
+  if (templateVersionId) {
+    const [tv] = await tx
+      .select({ id: documentTemplateVersion.id })
+      .from(documentTemplateVersion)
+      .where(
+        and(eq(documentTemplateVersion.projectId, s.projectId), eq(documentTemplateVersion.id, templateVersionId)),
       );
     if (!tv) throw notFound("Template version");
   }
@@ -228,7 +279,7 @@ export async function createLatexVersion(
       size: Buffer.byteLength(input.source),
       sha256: sha256(input.source),
       source: input.source,
-      templateVersionId: input.templateVersionId,
+      templateVersionId,
       compileStatus: "queued",
       createdBy: s.actor.userId,
     })
@@ -238,7 +289,7 @@ export async function createLatexVersion(
     entityType: "documentVersion",
     entityId: id,
     op: "create",
-    diff: { documentId, filename, templateVersionId: input.templateVersionId, size: row!.size },
+    diff: { documentId, filename, templateVersionId, size: row!.size },
   });
   return row!;
 }
@@ -376,8 +427,10 @@ const createLatexVersionRoute = defineRoute({
   summary: "Add a LaTeX version to a document",
   description:
     "Stores LaTeX source as a new immutable version and queues PDF compilation with the given template version " +
-    "(its .cls and other files sit next to the source). Typical flow for tailoring: read the main resume version " +
-    "with getDocumentVersion, edit the source, create a tailored document and add the edited source here. " +
+    "(its .cls and other files sit next to the source). Without `templateVersionId`, the latest version of the " +
+    "template this document used last is taken, or of the template providing the `\\documentclass`; pass null to " +
+    "compile without a template. Typical flow for tailoring: read the main resume version with " +
+    "readDocumentVersion, edit the source, create a tailored document and add the edited source here. " +
     "Poll getDocumentVersion for `compileStatus`.",
   scope: "project",
   permissions: ["document:update"],
@@ -388,7 +441,10 @@ const createLatexVersionRoute = defineRoute({
     body: jsonBody(
       z.object({
         source: z.string().min(1).max(MAX_SOURCE_CHARS),
-        templateVersionId: publicId("templateVersion").nullable().optional(),
+        templateVersionId: publicId("templateVersion")
+          .nullable()
+          .optional()
+          .openapi({ description: "Omit to pick the template automatically; null for none" }),
         filename: z.string().max(120).default("main.tex"),
       }),
     ),
@@ -401,7 +457,9 @@ const uploadVersion = defineRoute({
   path: "/api/projects/{projectId}/documents/{documentId}/versions/upload",
   operationId: "uploadDocumentVersion",
   summary: "Upload a file as a new document version",
-  description: `Stores any file (PDF, DOCX, ZIP, …) up to ${MAX_UPLOAD_BYTES / 1024 / 1024} MB as a new version.`,
+  description:
+    `Stores any file (PDF, DOCX, ZIP, …) up to ${MAX_UPLOAD_BYTES / 1024 / 1024} MB as a new version. A .tex file ` +
+    "becomes a LaTeX version instead, compiled with the template picked as in createLatexVersion.",
   scope: "project",
   permissions: ["document:update"],
   tags: ["Documents"],
@@ -417,13 +475,47 @@ const getVersion = defineRoute({
   path: "/api/projects/{projectId}/documents/{documentId}/versions/{versionId}",
   operationId: "getDocumentVersion",
   summary: "Get a document version with its source",
-  description: "Returns version metadata, the LaTeX source (for LaTeX versions), compile status and log.",
+  description:
+    "Returns version metadata, the LaTeX source (for LaTeX versions), compile status and log. For the text of an " +
+    "uploaded file (PDF, Word, .tex, Markdown, …) use readDocumentVersion.",
   scope: "project",
   permissions: ["document:read"],
   mcp: { expose: true },
   tags: ["Documents"],
   request: { params: VersionParams },
   responses: { 200: jsonResponse(VersionDetailSchema, "Version"), ...errorResponses(404) },
+});
+
+const readVersion = defineRoute({
+  method: "get",
+  path: "/api/projects/{projectId}/documents/{documentId}/versions/{versionId}/text",
+  operationId: "readDocumentVersion",
+  summary: "Read the text of a document version",
+  description:
+    "The text content of any version: the source of a LaTeX version, uploaded text files (.tex, .md, .txt, …) as " +
+    "they are, and text extracted from PDFs (page by page) and Word (.docx) files. Formatting and images are lost. " +
+    `Long texts are cut at ${MAX_TEXT_CHARS.toLocaleString("en")} characters.`,
+  scope: "project",
+  permissions: ["document:read"],
+  mcp: { expose: true },
+  tags: ["Documents"],
+  request: { params: VersionParams },
+  responses: {
+    200: jsonResponse(
+      z
+        .object({
+          versionId: publicId("documentVersion"),
+          filename: z.string(),
+          format: z.enum(["latex", "text", "pdf", "docx"]),
+          text: z.string(),
+          totalPages: z.int().nullable().openapi({ description: "Page count, for PDFs" }),
+          truncated: z.boolean(),
+        })
+        .openapi("DocumentText"),
+      "Text",
+    ),
+    ...errorResponses(404, 409),
+  },
 });
 
 const downloadVersion = defineRoute({
@@ -573,7 +665,7 @@ async function templateView(tx: Tx, row: typeof documentTemplate.$inferSelect) {
   };
 }
 
-function asFiles(value: unknown): File[] {
+export function asFiles(value: unknown): File[] {
   const list = Array.isArray(value) ? value : [value];
   const files = list.filter((f): f is File => f instanceof File);
   if (files.length === 0) throw badRequest("Attach at least one file");
@@ -685,7 +777,7 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
       await requireVisible(tx, document, s, documentId, "Document");
       return createLatexVersion(tx, s, documentId, {
         source: body.source,
-        templateVersionId: body.templateVersionId ? uuidOf("templateVersion", body.templateVersionId) : null,
+        templateVersionId: optionalUuidOf("templateVersion", body.templateVersionId),
         filename: body.filename,
       });
     });
@@ -701,6 +793,21 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
     if (file!.size > MAX_UPLOAD_BYTES) throw badRequest("File too large");
     const bytes = new Uint8Array(await file!.arrayBuffer());
     const filename = safeFilename(file!.name);
+    if (/\.tex$/i.test(filename)) {
+      let source: string;
+      try {
+        source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      } catch {
+        throw badRequest(`${filename} is not UTF-8 text`);
+      }
+      if (source.length > MAX_SOURCE_CHARS) throw badRequest("File too large");
+      const row = await s.db.transaction(async (tx) => {
+        await requireVisible(tx, document, s, documentId, "Document");
+        return createLatexVersion(tx, s, documentId, { source, templateVersionId: undefined, filename });
+      });
+      await c.var.deps.services.jobs.enqueueCompile({ projectId: s.projectId, documentVersionId: row.id });
+      return c.json(versionDetail(row), 201);
+    }
     const id = newUuid();
     const key = blobKeys.upload(s.projectId, id, filename);
     await requireVisible(s.db, document, s, documentId, "Document");
@@ -743,6 +850,31 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
       uuidOf("documentVersion", params.versionId),
     );
     return c.json(versionDetail(row), 200);
+  });
+
+  app.openapi(readVersion, async (c) => {
+    const s = scopeOf(c);
+    const params = c.req.valid("param");
+    const row = await loadVersion(
+      s.db,
+      s,
+      uuidOf("document", params.documentId),
+      uuidOf("documentVersion", params.versionId),
+    );
+    const base = { versionId: params.versionId, filename: row.filename };
+    if (row.source !== null)
+      return c.json({ ...base, format: "latex" as const, totalPages: null, ...truncate(row.source) }, 200);
+    const format = textFormatOf(row.filename, row.mime);
+    if (!format) throw conflict(`Cannot read text from ${row.filename} (${row.mime})`);
+    const bytes = await c.var.deps.services.blobs.get(row.blobKey!);
+    if (!bytes) throw notFound("File");
+    let extracted: Awaited<ReturnType<typeof extractFileText>>;
+    try {
+      extracted = await extractFileText(format, bytes);
+    } catch (err) {
+      throw conflict(`Could not read ${row.filename}: ${(err as Error).message}`);
+    }
+    return c.json({ ...base, format, totalPages: extracted.totalPages, ...truncate(extracted.text) }, 200);
   });
 
   app.openapi(downloadVersion, async (c) => {

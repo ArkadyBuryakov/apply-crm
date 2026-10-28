@@ -14,6 +14,7 @@
     "auth:generate": "auth generate --config src/auth-cli.ts --output ../../packages/db/src/auth-schema.ts -y && biome format --write ../../packages/db/src/auth-schema.ts"
   },
   "devDependencies": {
+    "@ai-sdk/provider": "4.0.34",
     "@modelcontextprotocol/client": "2.3.1",
     "@testcontainers/postgresql": "12.2.1",
     "auth": "1.7.12",
@@ -22,6 +23,9 @@
     "vitest": "5.0.5"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "4.0.89",
+    "@ai-sdk/google": "4.0.106",
+    "@ai-sdk/openai": "4.0.103",
     "@aws-sdk/client-s3": "^3.1156.0",
     "@aws-sdk/s3-request-presigner": "^3.1156.0",
     "@better-auth/api-key": "1.7.12",
@@ -32,6 +36,7 @@
     "@hono/node-server": "^2.1.5",
     "@hono/zod-openapi": "1.6.3",
     "@modelcontextprotocol/server": "2.3.1",
+    "ai": "7.0.154",
     "better-auth": "1.7.12",
     "drizzle-orm": "0.45.4",
     "fflate": "^0.8.3",
@@ -39,6 +44,7 @@
     "jose": "^6.2.13",
     "pg-boss": "12.38.0",
     "postgres": "3.4.9",
+    "unpdf": "1.9.1",
     "zod": "4.6.7"
   }
 }

@@ -1,7 +1,7 @@
 // LaTeX compilation in the worker (ADR 0024, 0025): sandboxed Tectonic, one temp directory per job, hard timeout.
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { type Db, documentTemplateVersion, documentVersion } from "@crm/db";
 import { and, eq } from "drizzle-orm";
@@ -9,6 +9,14 @@ import { type BlobStore, blobKeys } from "./blobs.js";
 import type { CompileDocumentJob } from "./jobs.js";
 
 const MAX_LOG_CHARS = 20_000;
+
+/**
+ * Tectonic downloads its TeX bundle on first use and caches it. HOME is the per-job temp directory, so without an
+ * explicit cache directory every compile would start cold and time out. The image sets TECTONIC_CACHE_DIR; a local
+ * worker falls back to the user's own cache.
+ */
+const CACHE_DIR =
+  process.env.TECTONIC_CACHE_DIR || path.join(process.env.XDG_CACHE_HOME || path.join(homedir(), ".cache"), "tectonic");
 
 export interface LatexCompiler {
   /** Compiles `mainFile` inside `dir`; the PDF is expected next to it. */
@@ -30,7 +38,7 @@ export class TectonicCompiler implements LatexCompiler {
         env: {
           PATH: process.env.PATH ?? "/usr/bin:/bin",
           HOME: dir,
-          ...(process.env.TECTONIC_CACHE_DIR ? { TECTONIC_CACHE_DIR: process.env.TECTONIC_CACHE_DIR } : {}),
+          TECTONIC_CACHE_DIR: CACHE_DIR,
         },
         stdio: ["ignore", "pipe", "pipe"],
       });
