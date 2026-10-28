@@ -18,7 +18,7 @@ setup_scripts:
 scripts:
   services:
     command: mkdir -p .dev-data && docker compose -f docker-compose.dev.yml up
-    cleanup: docker compose -f docker-compose.dev.yml stop
+    cleanup: docker compose -f docker-compose.dev.yml down
     background: true
     exclusive: true
     hidden: true
