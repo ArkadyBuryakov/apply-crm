@@ -11,6 +11,7 @@
 symlinks:
   - .env
   - .dev-data
+  - local_docs
 
 setup_scripts:
   - pnpm install --frozen-lockfile --prefer-offline

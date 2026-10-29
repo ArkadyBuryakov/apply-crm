@@ -7,6 +7,8 @@ coverage/
 !.env.example
 data/
 .dev-data/
+# local documents for occasional usage
+local_docs/
 # personal documents must never be committed (ADR 0028)
 *.pdf
 *.tex
