@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
 import { ApiError } from "./lib/api";
+import { useTheme } from "./lib/theme";
 import { createAppRouter } from "./router";
 import "./styles.css";
 
@@ -17,11 +18,15 @@ const queryClient = new QueryClient({
 });
 const router = createAppRouter(queryClient);
 
+function ThemedToaster() {
+  return <Toaster richColors theme={useTheme().resolved} position="bottom-right" />;
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-      <Toaster richColors theme="system" position="bottom-right" />
+      <ThemedToaster />
     </QueryClientProvider>
   </StrictMode>,
 );

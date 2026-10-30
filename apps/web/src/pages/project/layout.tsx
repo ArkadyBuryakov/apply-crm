@@ -5,15 +5,19 @@ import {
   Brain,
   Building2,
   CalendarDays,
+  Check,
   ChevronLeft,
   FileText,
   KanbanSquare,
   LogOut,
   MessageSquare,
+  Monitor,
+  Moon,
   Network,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  Sun,
   UserRound,
   Users,
 } from "lucide-react";
@@ -37,6 +41,7 @@ import { authClient } from "@/lib/auth";
 import { clearLastProject, setLastProject } from "@/lib/last-project";
 import { useProject, useProjectMutation } from "@/lib/queries";
 import { sidebarCollapsed } from "@/lib/sidebar-prefs";
+import { setTheme, useTheme } from "@/lib/theme";
 import { cn, formatDateTime, humanize } from "@/lib/utils";
 
 const NAV = [
@@ -295,13 +300,45 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
                 ))}
               </nav>
             </div>
-            <div className="shrink-0 border-t border-border p-3">
-              <UserMenu expanded={expanded} role={role} />
+            <div className={cn("flex shrink-0 gap-1 border-t border-border p-3", !expanded && "flex-col")}>
+              <div className="min-w-0 flex-1">
+                <UserMenu expanded={expanded} role={role} />
+              </div>
+              <ThemeMenu />
             </div>
           </div>
         </div>
       </aside>
     </>
+  );
+}
+
+const THEMES = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+] as const;
+
+function ThemeMenu() {
+  const { theme } = useTheme();
+  const current = THEMES.find((t) => t.value === theme) ?? THEMES[0];
+  return (
+    <Menu
+      side="top"
+      align="start"
+      trigger={
+        <Button variant="ghost" size="icon" aria-label={`Theme: ${current.label}`} title={`Theme: ${current.label}`}>
+          <current.icon />
+        </Button>
+      }
+    >
+      {THEMES.map((t) => (
+        <MenuItem key={t.value} onSelect={() => setTheme(t.value)}>
+          <t.icon /> <span className="flex-1">{t.label}</span>
+          {t.value === theme ? <Check className="text-primary" /> : null}
+        </MenuItem>
+      ))}
+    </Menu>
   );
 }
 
