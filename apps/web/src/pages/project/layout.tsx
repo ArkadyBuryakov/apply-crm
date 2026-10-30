@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   Settings,
   Sun,
+  SunMoon,
   UserRound,
   Users,
 } from "lucide-react";
@@ -43,6 +44,9 @@ import { useProject, useProjectMutation } from "@/lib/queries";
 import { sidebarCollapsed } from "@/lib/sidebar-prefs";
 import { setTheme, useTheme } from "@/lib/theme";
 import { cn, formatDateTime, humanize } from "@/lib/utils";
+
+const NAV_ITEM =
+  "flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const NAV = [
   { to: "/p/$projectId", label: "Pipeline", icon: KanbanSquare, exact: true },
@@ -291,20 +295,18 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
                     activeOptions={{ exact: "exact" in item }}
                     title={expanded ? undefined : item.label}
                     aria-label={expanded ? undefined : item.label}
-                    className="flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                    className={NAV_ITEM}
                     activeProps={{ className: "bg-muted text-foreground font-medium" }}
                   >
                     <item.icon className="size-4 shrink-0" />
                     {expanded ? <span className="truncate">{item.label}</span> : null}
                   </Link>
                 ))}
+                <ThemeMenu expanded={expanded} />
               </nav>
             </div>
-            <div className={cn("flex shrink-0 gap-1 border-t border-border p-3", !expanded && "flex-col")}>
-              <div className="min-w-0 flex-1">
-                <UserMenu expanded={expanded} role={role} />
-              </div>
-              <ThemeMenu />
+            <div className="shrink-0 border-t border-border p-3">
+              <UserMenu expanded={expanded} role={role} />
             </div>
           </div>
         </div>
@@ -319,17 +321,21 @@ const THEMES = [
   { value: "dark", label: "Dark", icon: Moon },
 ] as const;
 
-function ThemeMenu() {
+function ThemeMenu({ expanded }: { expanded: boolean }) {
   const { theme } = useTheme();
-  const current = THEMES.find((t) => t.value === theme) ?? THEMES[0];
   return (
     <Menu
-      side="top"
       align="start"
       trigger={
-        <Button variant="ghost" size="icon" aria-label={`Theme: ${current.label}`} title={`Theme: ${current.label}`}>
-          <current.icon />
-        </Button>
+        <button
+          type="button"
+          aria-label={expanded ? undefined : "Theme"}
+          title={expanded ? undefined : "Theme"}
+          className={cn(NAV_ITEM, "w-full cursor-pointer text-left data-[state=open]:bg-muted")}
+        >
+          <SunMoon className="size-4 shrink-0" />
+          {expanded ? <span className="truncate">Theme</span> : null}
+        </button>
       }
     >
       {THEMES.map((t) => (
