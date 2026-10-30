@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet, useNavigate, useParams, useRouteContext, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useParams, useRouteContext } from "@tanstack/react-router";
 import {
   Bell,
   Brain,
@@ -23,7 +23,6 @@ import {
   type PointerEvent,
   type ReactNode,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -197,154 +196,122 @@ function useMediaQuery(query: string) {
 
 /**
  * Project navigation. Wide windows show it expanded unless the user collapsed it to an icon rail; narrow windows always
- * show the rail, which expands over the page while hovered.
+ * show the rail, whose expand button opens it over the dimmed page until it is collapsed again or the page is clicked.
  */
 function Sidebar({ projectId, projectName, role }: { projectId: string; projectName?: string; role?: string }) {
   const narrow = useMediaQuery(NARROW);
   const [collapsed, setCollapsed] = useState(sidebarCollapsed.get);
-  const [hovered, setHovered] = useState(false);
-  // Open menus keep the rail expanded; the notifications button moves when it expands, so its menu is controlled here.
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const rail = narrow || collapsed;
-  const peeking = narrow && (hovered || notificationsOpen || accountOpen);
-  const expanded = !rail || peeking;
+  const overlay = narrow && overlayOpen;
+  const expanded = !rail || overlay;
 
-  // A tap on a touch screen never leaves the rail, so navigating by touch closes it; a mouse keeps it open until it
-  // leaves.
-  const pointerType = useRef("mouse");
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on navigation
   useEffect(() => {
-    if (pointerType.current !== "mouse") setHovered(false);
-  }, [pathname]);
+    if (!overlay) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOverlayOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [overlay]);
 
   function toggle() {
-    setCollapsed(!collapsed);
-    sidebarCollapsed.set(!collapsed);
+    if (narrow) setOverlayOpen(!overlayOpen);
+    else {
+      setCollapsed(!collapsed);
+      sidebarCollapsed.set(!collapsed);
+    }
   }
 
-  const toggleButton = narrow ? null : (
+  const toggleButton = (
     <Button
       variant="ghost"
       size="icon"
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+      aria-expanded={expanded}
+      title={expanded ? "Collapse sidebar" : "Expand sidebar"}
       onClick={toggle}
     >
-      {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+      {expanded ? <PanelLeftClose /> : <PanelLeftOpen />}
     </Button>
   );
 
   return (
-    <aside
-      aria-label="Project navigation"
-      className={cn("sticky top-0 z-30 h-screen shrink-0", rail ? "w-14" : "w-56")}
-      onPointerDown={(e) => {
-        pointerType.current = e.pointerType;
-      }}
-      onMouseOver={narrow ? () => setHovered(true) : undefined}
-      onMouseLeave={narrow ? () => setHovered(false) : undefined}
-      // Only keyboard focus expands it: the browser also refocuses the last clicked link when the window or tab
-      // regains focus, which must not open the rail.
-      onFocus={
-        narrow
-          ? (e) => {
-              if (e.target.matches(":focus-visible")) setHovered(true);
-            }
-          : undefined
-      }
-      onBlur={
-        narrow
-          ? (e) => {
-              if (!e.currentTarget.contains(e.relatedTarget)) setHovered(false);
-            }
-          : undefined
-      }
-    >
-      <div
-        className={cn(
-          "absolute inset-y-0 left-0 overflow-hidden border-r border-border bg-background",
-          expanded ? "w-56" : "w-14",
-          peeking && "shadow-lg",
-        )}
+    <>
+      {overlay ? (
+        <div aria-hidden className="fixed inset-0 z-30 bg-black/40" onClick={() => setOverlayOpen(false)} />
+      ) : null}
+      <aside
+        aria-label="Project navigation"
+        className={cn("sticky top-0 z-30 h-screen shrink-0", rail ? "w-14" : "w-56")}
       >
-        <div className="flex h-full flex-col bg-muted/30">
-          <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-3">
-            {expanded ? (
-              <>
-                <Link
-                  to="/projects"
-                  className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <ChevronLeft className="size-3" /> All projects
-                </Link>
-                <Notifications projectId={projectId} open={notificationsOpen} onOpenChange={setNotificationsOpen} />
-                {toggleButton}
-              </>
-            ) : (
-              (toggleButton ?? (
-                <Button variant="ghost" size="icon" asChild>
-                  <Link to="/projects" aria-label="All projects" title="All projects">
-                    <ChevronLeft />
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 overflow-hidden border-r border-border bg-background",
+            expanded ? "w-56" : "w-14",
+            overlay && "shadow-lg",
+          )}
+        >
+          <div className="flex h-full flex-col bg-muted/30">
+            <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-3">
+              {expanded ? (
+                <>
+                  <Link
+                    to="/projects"
+                    className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ChevronLeft className="size-3" /> All projects
                   </Link>
-                </Button>
-              ))
-            )}
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-3">
-            {expanded ? (
-              <div className="mb-3 truncate px-2 font-semibold" title={projectName}>
-                {projectName}
-              </div>
-            ) : (
-              <div className="mb-2">
-                <Notifications projectId={projectId} open={notificationsOpen} onOpenChange={setNotificationsOpen} />
-              </div>
-            )}
-            <nav className="grid gap-0.5">
-              {NAV.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  params={{ projectId }}
-                  activeOptions={{ exact: "exact" in item }}
-                  title={expanded ? undefined : item.label}
-                  aria-label={expanded ? undefined : item.label}
-                  className="flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                  activeProps={{ className: "bg-muted text-foreground font-medium" }}
-                >
-                  <item.icon className="size-4 shrink-0" />
-                  {expanded ? <span className="truncate">{item.label}</span> : null}
-                </Link>
-              ))}
-            </nav>
-          </div>
-          <div className="shrink-0 border-t border-border p-3">
-            <UserMenu expanded={expanded} role={role} onOpenChange={setAccountOpen} />
+                  <Notifications projectId={projectId} />
+                </>
+              ) : null}
+              {toggleButton}
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-3">
+              {expanded ? (
+                <div className="mb-3 truncate px-2 font-semibold" title={projectName}>
+                  {projectName}
+                </div>
+              ) : (
+                <div className="mb-2">
+                  <Notifications projectId={projectId} />
+                </div>
+              )}
+              <nav className="grid gap-0.5">
+                {NAV.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    params={{ projectId }}
+                    activeOptions={{ exact: "exact" in item }}
+                    title={expanded ? undefined : item.label}
+                    aria-label={expanded ? undefined : item.label}
+                    className="flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                    activeProps={{ className: "bg-muted text-foreground font-medium" }}
+                  >
+                    <item.icon className="size-4 shrink-0" />
+                    {expanded ? <span className="truncate">{item.label}</span> : null}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            <div className="shrink-0 border-t border-border p-3">
+              <UserMenu expanded={expanded} role={role} />
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
-function UserMenu({
-  expanded,
-  role,
-  onOpenChange,
-}: {
-  expanded: boolean;
-  role?: string;
-  onOpenChange: (open: boolean) => void;
-}) {
+function UserMenu({ expanded, role }: { expanded: boolean; role?: string }) {
   const { user } = useRouteContext({ from: "/authed" });
   const navigate = useNavigate();
   return (
     <Menu
       side="top"
       align="start"
-      onOpenChange={onOpenChange}
       trigger={
         <Button
           variant="ghost"
@@ -377,15 +344,7 @@ function UserMenu({
   );
 }
 
-function Notifications({
-  projectId,
-  open,
-  onOpenChange,
-}: {
-  projectId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+function Notifications({ projectId }: { projectId: string }) {
   const notifications = useQuery({
     queryKey: ["notifications", projectId],
     queryFn: () =>
@@ -401,8 +360,6 @@ function Notifications({
   return (
     <Menu
       align="start"
-      open={open}
-      onOpenChange={onOpenChange}
       trigger={
         <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
           <Bell />
