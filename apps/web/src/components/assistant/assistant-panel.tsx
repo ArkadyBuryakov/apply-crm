@@ -111,7 +111,7 @@ export function AssistantPanel({ projectId, onClose }: { projectId: string; onCl
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
         <Button
           variant="ghost"
           size="icon"

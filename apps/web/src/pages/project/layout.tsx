@@ -9,11 +9,11 @@ import {
   FileText,
   KanbanSquare,
   LogOut,
+  MessageSquare,
   Network,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  Sparkles,
   UserRound,
   Users,
 } from "lucide-react";
@@ -120,7 +120,7 @@ export function ProjectLayout() {
             className={cn(assistantOpen && "bg-muted")}
             onClick={() => toggleAssistant()}
           >
-            <Sparkles />
+            <MessageSquare />
           </Button>
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-6">

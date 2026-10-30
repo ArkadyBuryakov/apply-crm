@@ -29,6 +29,7 @@ import { errorMessage } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import type { ChatSettings } from "./assistant-panel";
 import { Attachment, MessageView } from "./message-parts";
+import { ModelPicker } from "./model-picker";
 
 const APPROVAL_MODES: { value: ApprovalMode; label: string; title: string }[] = [
   { value: "manual", label: "Ask always", title: "Ask before every CRM action, even lookups" },
@@ -36,8 +37,6 @@ const APPROVAL_MODES: { value: ApprovalMode; label: string; title: string }[] = 
   { value: "write", label: "Allow writes", title: "Look things up and make changes freely; ask before deleting" },
   { value: "all", label: "Allow all", title: "Run every CRM action without asking, including deletes" },
 ];
-
-const PROVIDER_LABELS: Record<string, string> = { anthropic: "Anthropic", openai: "OpenAI", google: "Google" };
 
 const ACCEPT =
   "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/*,.md,.tex,.cls,.bib,.csv,.json,.yaml,.yml";
@@ -268,9 +267,6 @@ function Composer({
     upload([...e.dataTransfer.files]);
   }
 
-  const byProvider = new Map<string, Schemas["AiModel"][]>();
-  for (const m of models) byProvider.set(m.provider, [...(byProvider.get(m.provider) ?? []), m]);
-
   return (
     <form
       onSubmit={submit}
@@ -337,22 +333,7 @@ function Composer({
         >
           <Globe />
         </Button>
-        <Select
-          aria-label="Model"
-          className="h-8 w-auto min-w-0 max-w-40 flex-1 text-xs"
-          value={settings.model ?? ""}
-          onChange={(e) => onSettingsChange({ model: e.target.value })}
-        >
-          {[...byProvider].map(([provider, list]) => (
-            <optgroup key={provider} label={PROVIDER_LABELS[provider] ?? provider}>
-              {list.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </Select>
+        <ModelPicker models={models} value={settings.model} onChange={(model) => onSettingsChange({ model })} />
         <Select
           aria-label="Approval mode"
           title={APPROVAL_MODES.find((m) => m.value === settings.approvalMode)?.title}
