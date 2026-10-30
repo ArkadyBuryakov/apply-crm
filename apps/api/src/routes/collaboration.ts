@@ -63,9 +63,9 @@ const CommentSchema = z
 const NotificationSchema = z
   .object({
     id: publicId("notification"),
-    kind: z.enum(["assigned", "comment"]),
+    kind: z.enum(["assigned", "comment", "agenda"]),
     entityType: z.string(),
-    entityId: z.string(),
+    entityId: z.string().nullable(),
     message: z.string(),
     createdAt: Timestamp,
     readAt: Timestamp.nullable(),
@@ -181,7 +181,8 @@ const listNotifications = defineRoute({
   path: "/api/projects/{projectId}/notifications",
   operationId: "listNotifications",
   summary: "List your notifications",
-  description: "Assignments and comments addressed to the caller in this project, newest first.",
+  description:
+    "Assignments, comments and the morning agenda digest addressed to the caller in this project, newest first.",
   scope: "project",
   permissions: ["project:read"],
   tags: ["Notifications"],
@@ -349,9 +350,9 @@ export function registerCollaborationRoutes(app: OpenAPIHono<AppEnv>) {
       {
         items: result.items.map((n) => ({
           id: pid("notification", n.id),
-          kind: n.kind as "assigned" | "comment",
+          kind: n.kind as "assigned" | "comment" | "agenda",
           entityType: n.entityType,
-          entityId: pid(TARGET_ID_KIND[n.entityType as CommentTarget] ?? "action", n.entityId),
+          entityId: pidOrNull(TARGET_ID_KIND[n.entityType as CommentTarget] ?? "action", n.entityId),
           message: n.message,
           createdAt: iso(n.createdAt),
           readAt: isoOrNull(n.readAt),

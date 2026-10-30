@@ -1,0 +1,1 @@
+ALTER TABLE "notification" ALTER COLUMN "entity_id" DROP NOT NULL;

@@ -4,6 +4,7 @@ import { createDb } from "@crm/db";
 import { loadEnv } from "./env.js";
 import { S3BlobStore } from "./services/blobs.js";
 import { runCompileJob, TectonicCompiler } from "./services/compile.js";
+import { runAgendaDigest } from "./services/digest.js";
 import { type CompileDocumentJob, PgBossJobQueue, QUEUES } from "./services/jobs.js";
 
 // The image's HEALTHCHECK tests for this file; remove a stale one left by a previous run of the same container.
@@ -24,6 +25,12 @@ await boss.work<CompileDocumentJob>(QUEUES.compileDocument, { batchSize: 1 }, as
   if (!job) return;
   const result = await runCompileJob({ db, blobs, compiler }, job.data);
   console.log(`[worker] ${QUEUES.compileDocument} ${job.data.documentVersionId}: ${result}`);
+});
+// Every 10 minutes; the job itself picks the members whose local time is in the 8 o'clock hour.
+await boss.schedule(QUEUES.agendaDigest, "*/10 * * * *");
+await boss.work(QUEUES.agendaDigest, async () => {
+  const sent = await runAgendaDigest(db);
+  if (sent) console.log(`[worker] ${QUEUES.agendaDigest}: ${sent} notifications`);
 });
 writeFileSync(READY_FILE, "");
 console.log("[worker] listening for jobs");

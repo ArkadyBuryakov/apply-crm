@@ -3,6 +3,7 @@ import { PgBoss } from "pg-boss";
 
 export const QUEUES = {
   compileDocument: "document.compile",
+  agendaDigest: "agenda.digest",
 } as const;
 
 export type CompileDocumentJob = { projectId: string; documentVersionId: string };
@@ -19,6 +20,7 @@ export class PgBossJobQueue implements JobQueue {
     boss.on("error", (err) => console.error("[pg-boss]", err));
     await boss.start();
     await boss.createQueue(QUEUES.compileDocument);
+    await boss.createQueue(QUEUES.agendaDigest);
     return { queue: new PgBossJobQueue(boss), boss };
   }
 

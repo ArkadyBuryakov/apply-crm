@@ -151,9 +151,9 @@ Fields and allowed statuses are listed in [`domain/action-types.md`](domain/acti
 | History | `audit_event` per change, including `via: web \| api_key \| mcp`; written in the same transaction | 0012 |
 | Deletion | soft delete everywhere; hard purge only for contacts (with audit redaction) | 0012, 0017 |
 | Concurrency | `version` column, `ETag`/`If-Match` → 412 on conflict; plain `version` body field for MCP | 0012 |
-| Notifications | in-app only; reminders computed at read time from dates; event notifications stored as rows | 0016 |
+| Notifications | in-app only; reminders computed at read time from dates; event notifications and the 8 AM agenda digest stored as rows | 0016 |
 | Search | Postgres full-text search; advanced search in v2 | 0016 |
-| Background jobs | pg-boss in Postgres; v1 job: `document.compile` | 0024 |
+| Background jobs | pg-boss in Postgres; v1 jobs: `document.compile`, `agenda.digest` (every 10 min; 8 AM local digest of today's tasks) | 0024 |
 | Import/export | versioned JSON + zip, round-trippable; CSV import for positions | 0017 |
 | Backups | Coolify Postgres backups and a document mirror into a separate bucket with separate credentials | 0027 |
 | In-app assistant | sidebar chat in the SPA; agent loop in the API on the user's own provider key (Anthropic, OpenAI, Google); MCP catalog tools in-process, router-derived navigation tool run in the browser; chats private to their author | 0031 |

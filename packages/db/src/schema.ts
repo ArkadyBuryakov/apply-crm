@@ -474,9 +474,9 @@ export const notification = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    kind: text("kind").notNull(), // assigned | comment
+    kind: text("kind").notNull(), // assigned | comment | agenda
     entityType: text("entity_type").notNull(),
-    entityId: uuid("entity_id").notNull(),
+    entityId: uuid("entity_id"), // null for agenda digests, which point at the agenda rather than an entity
     message: text("message").notNull(),
     createdAt: ts("created_at").notNull().defaultNow(),
     readAt: ts("read_at"),

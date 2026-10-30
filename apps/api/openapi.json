@@ -2921,14 +2921,18 @@
             "type": "string",
             "enum": [
               "assigned",
-              "comment"
+              "comment",
+              "agenda"
             ]
           },
           "entityType": {
             "type": "string"
           },
           "entityId": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "message": {
             "type": "string"
@@ -11915,7 +11919,7 @@
       "get": {
         "operationId": "listNotifications",
         "summary": "List your notifications",
-        "description": "Assignments and comments addressed to the caller in this project, newest first.",
+        "description": "Assignments, comments and the morning agenda digest addressed to the caller in this project, newest first.",
         "tags": [
           "Notifications"
         ],

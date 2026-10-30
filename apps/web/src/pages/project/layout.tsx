@@ -398,8 +398,13 @@ function Notifications({ projectId }: { projectId: string }) {
       ),
     refetchInterval: 60_000,
   });
-  const markRead = useProjectMutation(projectId, () =>
-    unwrap(api.POST("/api/projects/{projectId}/notifications/read", { params: { path: { projectId } }, body: {} })),
+  const markRead = useProjectMutation(projectId, (ids?: string[]) =>
+    unwrap(
+      api.POST("/api/projects/{projectId}/notifications/read", {
+        params: { path: { projectId } },
+        body: ids ? { ids } : {},
+      }),
+    ),
   );
   const unread = notifications.data?.items.filter((n) => !n.readAt).length ?? 0;
   return (
@@ -418,12 +423,30 @@ function Notifications({ projectId }: { projectId: string }) {
     >
       <div className="max-h-96 w-80 overflow-y-auto">
         {notifications.data?.items.length ? null : <p className="p-3 text-sm text-muted-foreground">Nothing new.</p>}
-        {notifications.data?.items.map((n) => (
-          <div key={n.id} className={cn("rounded px-2 py-1.5 text-sm", !n.readAt && "bg-accent/50")}>
-            <p>{n.message}</p>
-            <p className="text-xs text-muted-foreground">{formatDateTime(n.createdAt)}</p>
-          </div>
-        ))}
+        {notifications.data?.items.map((n) => {
+          const body = (
+            <>
+              <p>{n.message}</p>
+              <p className="text-xs text-muted-foreground">{formatDateTime(n.createdAt)}</p>
+            </>
+          );
+          return n.kind === "agenda" ? (
+            <MenuItem
+              key={n.id}
+              asChild
+              onSelect={() => (n.readAt ? undefined : markRead.mutate([n.id]))}
+              className={cn("block", !n.readAt && "bg-accent/50")}
+            >
+              <Link to="/p/$projectId/agenda" params={{ projectId }}>
+                {body}
+              </Link>
+            </MenuItem>
+          ) : (
+            <div key={n.id} className={cn("rounded px-2 py-1.5 text-sm", !n.readAt && "bg-accent/50")}>
+              {body}
+            </div>
+          );
+        })}
         {unread ? (
           <MenuItem onSelect={() => markRead.mutate(undefined)} className="justify-center text-primary">
             Mark all as read
