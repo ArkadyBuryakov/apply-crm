@@ -16,7 +16,7 @@ import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, unwrap } from "@/lib/api";
 import { useCan, useProjectMutation, useStages } from "@/lib/queries";
-import { formatDate, formatMoney, humanize } from "@/lib/utils";
+import { formatDate, formatSalary, humanize } from "@/lib/utils";
 import { OUTCOME_TONE } from "./board";
 
 export function PositionPage() {
@@ -58,12 +58,7 @@ export function PositionPage() {
   if (overview.isLoading) return <Loading />;
   if (!overview.data) return <EmptyState title="Position not found" />;
   const { position, company, agency, contacts, timeline, edges, documents } = overview.data;
-  const salary = [
-    formatMoney(position.salary.min, position.salary.currency),
-    formatMoney(position.salary.max, position.salary.currency),
-  ]
-    .filter(Boolean)
-    .join(" – ");
+  const salary = formatSalary(position.salary);
 
   return (
     <div>
@@ -96,8 +91,8 @@ export function PositionPage() {
             ) : null}
             {salary ? (
               <span>
-                · {salary}
-                {position.salary.period ? ` / ${position.salary.period}` : ""}
+                · {salary.range}
+                {salary.yearly ? <span className="ml-1 text-muted-foreground/60">({salary.yearly})</span> : null}
               </span>
             ) : null}
             {position.url ? (

@@ -46,3 +46,26 @@ export function formatMoney(amount: number | null | undefined, currency: string 
     return `${amount} ${currency ?? ""}`.trim();
   }
 }
+
+type Salary = { min: number | null; max: number | null; currency: string | null; period: string | null };
+
+/** Working hours and months in a year, for annualizing hourly and monthly pay. */
+const PER_YEAR: Record<string, number> = { year: 1, month: 12, hour: 8 * 260 };
+
+export function formatSalaryRange(salary: Salary, factor = 1) {
+  const scale = (n: number | null) => (n === null ? null : n * factor);
+  return [formatMoney(scale(salary.min), salary.currency), formatMoney(scale(salary.max), salary.currency)]
+    .filter(Boolean)
+    .join(" – ");
+}
+
+/** "€40 – €50 / hour" plus, for non-yearly pay, the annualized range (8h days, 260 days a year). */
+export function formatSalary(salary: Salary) {
+  const range = formatSalaryRange(salary);
+  if (!range) return null;
+  const factor = salary.period ? PER_YEAR[salary.period] : undefined;
+  return {
+    range: salary.period ? `${range} / ${salary.period}` : range,
+    yearly: factor && factor !== 1 ? `≈ ${formatSalaryRange(salary, factor)} / year` : null,
+  };
+}

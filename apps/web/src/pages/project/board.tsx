@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { api, type Position, unwrap } from "@/lib/api";
 import { useCan, usePositions, useProjectMutation, useStages } from "@/lib/queries";
-import { cn, formatMoney, humanize } from "@/lib/utils";
+import { cn, formatSalary, humanize } from "@/lib/utils";
 
 export const OUTCOME_TONE = {
   open: "primary",
@@ -112,16 +112,7 @@ export function BoardPage() {
                         {p.outcome !== "open" ? (
                           <Badge tone={OUTCOME_TONE[p.outcome]}>{humanize(p.outcome)}</Badge>
                         ) : null}
-                        {p.salary.min || p.salary.max ? (
-                          <span className="text-xs text-muted-foreground">
-                            {[
-                              formatMoney(p.salary.min, p.salary.currency),
-                              formatMoney(p.salary.max, p.salary.currency),
-                            ]
-                              .filter(Boolean)
-                              .join(" – ")}
-                          </span>
-                        ) : null}
+                        <SalaryLine salary={p.salary} />
                       </div>
                     </Link>
                   ))}
@@ -133,5 +124,16 @@ export function BoardPage() {
       )}
       {creating ? <PositionDialog projectId={projectId} onClose={() => setCreating(false)} /> : null}
     </div>
+  );
+}
+
+function SalaryLine({ salary }: { salary: Position["salary"] }) {
+  const formatted = formatSalary(salary);
+  if (!formatted) return null;
+  return (
+    <span className="text-xs text-muted-foreground">
+      {formatted.range}
+      {formatted.yearly ? <span className="block text-muted-foreground/60">{formatted.yearly}</span> : null}
+    </span>
   );
 }
