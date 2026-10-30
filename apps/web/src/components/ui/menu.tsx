@@ -6,17 +6,24 @@ export function Menu({
   trigger,
   children,
   align = "end",
+  side = "bottom",
+  open,
+  onOpenChange,
 }: {
   trigger: ReactNode;
   children: ReactNode;
   align?: "start" | "end";
+  side?: "top" | "right" | "bottom" | "left";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root open={open} onOpenChange={onOpenChange}>
       <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
           align={align}
+          side={side}
           sideOffset={4}
           className="z-50 min-w-44 rounded-md border border-border bg-card p-1 shadow-lg"
         >
