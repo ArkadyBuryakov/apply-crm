@@ -116,7 +116,7 @@ const agendaRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/agenda",
   component: AgendaPage,
-  staticData: { description: "Agenda: planned actions by day, and overdue tasks" },
+  staticData: { description: "Agenda: overdue actions, today's, and what is coming up by day" },
 });
 const graphRoute = createRoute({
   getParentRoute: () => projectRoute,

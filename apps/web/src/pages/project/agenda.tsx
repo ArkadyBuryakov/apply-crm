@@ -13,7 +13,7 @@ import { type Action, api, unwrap } from "@/lib/api";
 import { useCan, useMe, useMembers } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
-/** In-app reminders (ADR 0016): planned work in a date range plus everything overdue, computed by the API. */
+/** In-app reminders (ADR 0016): overdue, today's and upcoming planned work, bucketed by day by the API. */
 export function AgendaPage() {
   const { projectId } = useParams({ from: "/authed/p/$projectId/agenda" });
   const can = useCan(projectId);
@@ -93,16 +93,28 @@ export function AgendaPage() {
       </div>
       {agenda.isLoading ? <Loading /> : null}
       {agenda.data ? (
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-4">
+          {agenda.data.overdue.length ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-destructive">Overdue ({agenda.data.overdue.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-0.5 p-2">
+                {agenda.data.overdue.map((a) => (
+                  <ActionItem key={a.id} projectId={projectId} action={a} compact />
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
-              <CardTitle className="text-destructive">Overdue ({agenda.data.overdue.length})</CardTitle>
+              <CardTitle>Today ({agenda.data.today.length})</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-0.5 p-2">
-              {agenda.data.overdue.length === 0 ? (
-                <p className="p-2 text-sm text-muted-foreground">Nothing overdue.</p>
+              {agenda.data.today.length === 0 ? (
+                <p className="p-2 text-sm text-muted-foreground">Nothing for today.</p>
               ) : null}
-              {agenda.data.overdue.map((a) => (
+              {agenda.data.today.map((a) => (
                 <ActionItem key={a.id} projectId={projectId} action={a} compact />
               ))}
             </CardContent>

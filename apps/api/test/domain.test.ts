@@ -284,17 +284,27 @@ describe("composite views", () => {
       payload: {},
       subjects: [{ positionId: pos.id }],
     });
+    await owner.post(`${base()}/actions`, {
+      type: "task",
+      title: "Take-home exercise",
+      scheduledAt: past,
+      dueAt: soon,
+      payload: {},
+      subjects: [{ positionId: pos.id }],
+    });
 
     const overview = await owner.get(`${base()}/positions/${pos.id}/overview`);
     expect(overview.status).toBe(200);
     expect(overview.body.company.name).toBe("Initech");
-    expect(overview.body.timeline).toHaveLength(2);
+    expect(overview.body.timeline).toHaveLength(3);
     expect(overview.body.contacts.map((c: { name: string }) => c.name)).toEqual(["Peter Hiring"]);
 
     const agenda = await owner.get(`${base()}/agenda`);
     expect(agenda.status).toBe(200);
-    expect(agenda.body.overdue.map((a: { title: string }) => a.title)).toContain("Send portfolio");
-    expect(agenda.body.upcoming.map((a: { title: string }) => a.title)).toContain("Hiring manager chat");
+    const titles = (list: { title: string }[]) => list.map((a) => a.title);
+    expect(titles(agenda.body.overdue)).toEqual(["Send portfolio"]);
+    expect(titles(agenda.body.today)).toEqual(["Take-home exercise"]);
+    expect(titles(agenda.body.upcoming)).toEqual(["Hiring manager chat"]);
 
     const hits = await owner.get(`${base()}/search?q=initech`);
     const types = hits.body.items.map((h: { type: string }) => h.type);
@@ -302,7 +312,7 @@ describe("composite views", () => {
     expect(types).toContain("contact");
 
     const graph = await owner.get(`${base()}/graph?positionId=${pos.id}`);
-    expect(graph.body.nodes).toHaveLength(2);
+    expect(graph.body.nodes).toHaveLength(3);
   });
 });
 

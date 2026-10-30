@@ -3142,14 +3142,21 @@
             "items": {
               "$ref": "#/components/schemas/Action"
             },
-            "description": "Planned actions whose due or scheduled time has passed"
+            "description": "Planned actions due (or, without a due date, scheduled) before today"
+          },
+          "today": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Action"
+            },
+            "description": "Planned actions that start on or before today and are due today or later"
           },
           "upcoming": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Action"
             },
-            "description": "Planned actions scheduled or due in the range"
+            "description": "Planned actions starting after today, on a day in the range"
           }
         },
         "required": [
@@ -3157,6 +3164,7 @@
           "to",
           "timezone",
           "overdue",
+          "today",
           "upcoming"
         ]
       },
@@ -12360,7 +12368,7 @@
       "get": {
         "operationId": "getAgenda",
         "summary": "What is planned and overdue",
-        "description": "Planned actions scheduled or due between `from` and `to` (inclusive dates in the caller's timezone; default: today and the next 6 days), plus everything overdue. Optionally only one assignee's actions.",
+        "description": "Planned actions by day in the caller's timezone. An action starts on its scheduled day and is due on its due day; with only one of the two, both are that day. `overdue`: due before today. `today`: started and not yet due before today. `upcoming`: starting after today, between `from` and `to` (inclusive dates; default: today and the next 6 days). Optionally only one assignee's actions.",
         "tags": [
           "Composite"
         ],

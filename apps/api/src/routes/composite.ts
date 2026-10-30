@@ -13,7 +13,7 @@ import {
 } from "@crm/db";
 import { DOCUMENT_KINDS } from "@crm/shared";
 import { type OpenAPIHono, z } from "@hono/zod-openapi";
-import { and, asc, desc, eq, inArray, max, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, max, or, type SQL, sql } from "drizzle-orm";
 import { errorResponses, notFound } from "../http/errors.js";
 import {
   defineRoute,
@@ -89,8 +89,15 @@ const AgendaSchema = z
     from: z.iso.date(),
     to: z.iso.date(),
     timezone: z.string(),
-    overdue: z.array(ActionSchema).openapi({ description: "Planned actions whose due or scheduled time has passed" }),
-    upcoming: z.array(ActionSchema).openapi({ description: "Planned actions scheduled or due in the range" }),
+    overdue: z
+      .array(ActionSchema)
+      .openapi({ description: "Planned actions due (or, without a due date, scheduled) before today" }),
+    today: z
+      .array(ActionSchema)
+      .openapi({ description: "Planned actions that start on or before today and are due today or later" }),
+    upcoming: z
+      .array(ActionSchema)
+      .openapi({ description: "Planned actions starting after today, on a day in the range" }),
   })
   .openapi("Agenda");
 
@@ -100,8 +107,10 @@ const agendaRoute = defineRoute({
   operationId: "getAgenda",
   summary: "What is planned and overdue",
   description:
-    "Planned actions scheduled or due between `from` and `to` (inclusive dates in the caller's timezone; default: " +
-    "today and the next 6 days), plus everything overdue. Optionally only one assignee's actions.",
+    "Planned actions by day in the caller's timezone. An action starts on its scheduled day and is due on its due " +
+    "day; with only one of the two, both are that day. `overdue`: due before today. `today`: started and not yet " +
+    "due before today. `upcoming`: starting after today, between `from` and `to` (inclusive dates; default: today " +
+    "and the next 6 days). Optionally only one assignee's actions.",
   scope: "project",
   permissions: ["action:read"],
   mcp: { expose: true },
@@ -266,34 +275,22 @@ export function registerCompositeRoutes(app: OpenAPIHono<AppEnv>) {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
     const from = q.from ?? today;
     const to = q.to ?? addDays(from, 6);
-    const start = sql`(${from}::date)::timestamp at time zone ${tz}`;
-    const end = sql`((${to}::date + 1)::timestamp at time zone ${tz})`;
     const assignee = q.assigneeId ? eq(action.assigneeId, uuidOf("user", q.assigneeId)) : undefined;
     const planned = and(visible(action, s), eq(action.status, "planned"), assignee);
     const when = sql`coalesce(${action.scheduledAt}, ${action.dueAt})`;
+    const startDay = sql`(${when} at time zone ${tz})::date`;
+    const dueDay = sql`(coalesce(${action.dueAt}, ${action.scheduledAt}) at time zone ${tz})::date`;
+    const day = (d: string) => sql`${d}::date`;
+    const list = (where: SQL | undefined, limit: number) =>
+      s.db.select().from(action).where(and(planned, where)).orderBy(asc(when)).limit(limit);
 
-    const [overdueRows, upcomingRows] = await Promise.all([
-      s.db
-        .select()
-        .from(action)
-        .where(and(planned, sql`coalesce(${action.dueAt}, ${action.scheduledAt}) < now()`))
-        .orderBy(asc(when))
-        .limit(200),
-      s.db
-        .select()
-        .from(action)
-        .where(
-          and(
-            planned,
-            sql`coalesce(${action.dueAt}, ${action.scheduledAt}) >= now()`,
-            or(
-              and(sql`${action.scheduledAt} >= ${start}`, sql`${action.scheduledAt} < ${end}`),
-              and(sql`${action.dueAt} >= ${start}`, sql`${action.dueAt} < ${end}`),
-            ),
-          ),
-        )
-        .orderBy(asc(when))
-        .limit(500),
+    const [overdueRows, todayRows, upcomingRows] = await Promise.all([
+      list(sql`${dueDay} < ${day(today)}`, 200),
+      list(and(sql`${startDay} <= ${day(today)}`, sql`${dueDay} >= ${day(today)}`), 200),
+      list(
+        and(sql`${startDay} > ${day(today)}`, sql`${startDay} >= ${day(from)}`, sql`${startDay} <= ${day(to)}`),
+        500,
+      ),
     ]);
     return c.json(
       {
@@ -301,6 +298,7 @@ export function registerCompositeRoutes(app: OpenAPIHono<AppEnv>) {
         to,
         timezone: tz,
         overdue: await loadActions(s.db, overdueRows),
+        today: await loadActions(s.db, todayRows),
         upcoming: await loadActions(s.db, upcomingRows),
       },
       200,
