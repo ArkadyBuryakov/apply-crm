@@ -13,7 +13,8 @@ LLM read and edit it through MCP. Copying the class file into every tailored ver
 ### Templates
 - `DocumentTemplate (project_id, name)` with versions `DocumentTemplateVersion (template_id, version_no, files[])`, where
   `files` are blobs such as `.cls`, fonts and images.
-- A document version **pins a template version**, so recompiling an old version always produces the same PDF.
+- A document version **pins a template version**, so recompiling an old version always produces the same PDF. This
+  holds after the template is soft-deleted: it stops being offered and inferred, but its pinned versions keep compiling.
 
 ### Document versions (extends ADR 0006)
 - A LaTeX document version holds:

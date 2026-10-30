@@ -642,6 +642,33 @@ const createTemplate = defineRoute({
   responses: { 201: jsonResponse(TemplateSchema, "Created"), ...errorResponses(403, 404) },
 });
 
+const deleteTemplate = defineRoute({
+  method: "delete",
+  path: "/api/projects/{projectId}/templates/{templateId}",
+  operationId: "deleteTemplate",
+  summary: "Delete a LaTeX template",
+  description:
+    "Soft-deletes a template. New LaTeX versions no longer pick it up; versions pinned to it keep compiling with it.",
+  scope: "project",
+  permissions: ["template:delete"],
+  tags: ["Documents"],
+  request: { params: TemplateParams, query: z.object({ version: z.coerce.number().int().optional() }) },
+  responses: { 204: NoContent, ...errorResponses(403, 404, 412, 428) },
+});
+
+const restoreTemplate = defineRoute({
+  method: "post",
+  path: "/api/projects/{projectId}/templates/{templateId}/restore",
+  operationId: "restoreTemplate",
+  summary: "Restore a deleted LaTeX template",
+  description: "Undoes a delete.",
+  scope: "project",
+  permissions: ["template:delete"],
+  tags: ["Documents"],
+  request: { params: TemplateParams },
+  responses: { 204: NoContent, ...errorResponses(403, 404) },
+});
+
 const uploadTemplateVersion = defineRoute({
   method: "post",
   path: "/api/projects/{projectId}/templates/{templateId}/versions",
@@ -1026,6 +1053,30 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
       return templateView(tx, row!);
     });
     return c.json(view, 201);
+  });
+
+  app.openapi(deleteTemplate, async (c) => {
+    const s = scopeOf(c);
+    const id = uuidOf("template", c.req.valid("param").templateId);
+    const version = expectedVersion(c, c.req.valid("query").version);
+    await s.db.transaction((tx) =>
+      softDelete(tx, documentTemplate, s, {
+        id,
+        expectedVersion: version,
+        entityName: "Template",
+        entityType: "template",
+      }),
+    );
+    return c.body(null, 204);
+  });
+
+  app.openapi(restoreTemplate, async (c) => {
+    const s = scopeOf(c);
+    const id = uuidOf("template", c.req.valid("param").templateId);
+    await s.db.transaction((tx) =>
+      restore(tx, documentTemplate, s, { id, entityName: "Template", entityType: "template" }),
+    );
+    return c.body(null, 204);
   });
 
   app.openapi(uploadTemplateVersion, async (c) => {

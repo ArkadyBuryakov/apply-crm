@@ -4,7 +4,7 @@
 import { DOCUMENT_KINDS, type DocumentKind } from "@crm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Download, FileUp, Pencil, Plus, RefreshCw, Upload } from "lucide-react";
+import { Download, FileUp, Pencil, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -213,11 +213,50 @@ function CreateDocumentDialog({ projectId, onClose }: { projectId: string; onClo
   );
 }
 
+/** The UI has no way to bring back a deleted document or template, so deleting one asks first. */
+function ConfirmDeleteDialog({
+  title,
+  description,
+  pending,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  description: string;
+  pending: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={onClose} title={title} description={description}>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="destructive" disabled={pending} onClick={onConfirm}>
+          Delete
+        </Button>
+      </div>
+    </Dialog>
+  );
+}
+
 function TemplatesSection({ projectId }: { projectId: string }) {
   const can = useCan(projectId);
   const qc = useQueryClient();
   const templates = useTemplates(projectId);
   const [name, setName] = useState("");
+  const [deleting, setDeleting] = useState<Schemas["Template"] | null>(null);
+  const remove = useProjectMutation(
+    projectId,
+    (t: Schemas["Template"]) =>
+      unwrap(
+        api.DELETE("/api/projects/{projectId}/templates/{templateId}", {
+          params: { path: { projectId, templateId: t.id }, query: { version: t.version } },
+        }),
+      ),
+    { success: "Template deleted", onSuccess: () => setDeleting(null) },
+  );
   const create = useProjectMutation(
     projectId,
     () => unwrap(api.POST("/api/projects/{projectId}/templates", { params: { path: { projectId } }, body: { name } })),
@@ -258,17 +297,24 @@ function TemplatesSection({ projectId }: { projectId: string }) {
                     : "no files yet"}
                 </span>
               </span>
-              {can("template:update") ? (
-                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-2.5 py-1 text-xs hover:bg-muted">
-                  <Upload className="size-3.5" /> Upload files
-                  <input
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => uploadVersion(t.id, e.target.files)}
-                  />
-                </label>
-              ) : null}
+              <span className="flex items-center gap-1">
+                {can("template:update") ? (
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input px-2.5 py-1 text-xs hover:bg-muted">
+                    <Upload className="size-3.5" /> Upload files
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => uploadVersion(t.id, e.target.files)}
+                    />
+                  </label>
+                ) : null}
+                {can("template:delete") ? (
+                  <Button variant="ghost" size="icon" aria-label={`Delete ${t.name}`} onClick={() => setDeleting(t)}>
+                    <Trash2 />
+                  </Button>
+                ) : null}
+              </span>
             </CardContent>
           </Card>
         ))}
@@ -281,6 +327,15 @@ function TemplatesSection({ projectId }: { projectId: string }) {
           </Button>
         </div>
       ) : null}
+      {deleting ? (
+        <ConfirmDeleteDialog
+          title={`Delete ${deleting.name}?`}
+          description="It is no longer offered for new versions. Document versions already using it keep compiling with it."
+          pending={remove.isPending}
+          onConfirm={() => remove.mutate(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -291,11 +346,13 @@ export function DocumentDetailPage() {
   const { projectId, documentId } = useParams({ from: "/authed/p/$projectId/documents/$documentId" });
   const can = useCan(projectId);
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const templates = useTemplates(projectId);
   const positions = usePositions(projectId);
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const doc = useQuery({
     queryKey: ["document", projectId, documentId],
@@ -330,6 +387,20 @@ export function DocumentDetailPage() {
         params: { path: { projectId, documentId, versionId: versionId! } },
       }),
     ),
+  );
+
+  const remove = useProjectMutation(
+    projectId,
+    () =>
+      unwrap(
+        api.DELETE("/api/projects/{projectId}/documents/{documentId}", {
+          params: { path: { projectId, documentId }, query: { version: doc.data!.version } },
+        }),
+      ),
+    {
+      success: "Document deleted",
+      onSuccess: () => navigate({ to: "/p/$projectId/documents", params: { projectId } }),
+    },
   );
 
   async function upload(files: FileList | null) {
@@ -380,20 +451,27 @@ export function DocumentDetailPage() {
           </>
         }
         actions={
-          can("document:update") ? (
-            <>
-              <Button variant="outline" onClick={() => setEditingDetails(true)}>
-                <Pencil /> Rename
+          <>
+            {can("document:update") ? (
+              <>
+                <Button variant="outline" onClick={() => setEditingDetails(true)}>
+                  <Pencil /> Rename
+                </Button>
+                <Button onClick={() => setEditing(true)}>
+                  <Plus /> New LaTeX version
+                </Button>
+                <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm hover:bg-muted">
+                  <FileUp className="size-4" /> Upload file
+                  <input type="file" className="hidden" onChange={(e) => upload(e.target.files)} />
+                </label>
+              </>
+            ) : null}
+            {can("document:delete") ? (
+              <Button variant="ghost" size="icon" aria-label="Delete document" onClick={() => setDeleting(true)}>
+                <Trash2 />
               </Button>
-              <Button onClick={() => setEditing(true)}>
-                <Plus /> New LaTeX version
-              </Button>
-              <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm hover:bg-muted">
-                <FileUp className="size-4" /> Upload file
-                <input type="file" className="hidden" onChange={(e) => upload(e.target.files)} />
-              </label>
-            </>
-          ) : null
+            ) : null}
+          </>
         }
       />
       {d.versions.length === 0 ? (
@@ -464,6 +542,15 @@ export function DocumentDetailPage() {
       ) : null}
       {editingDetails ? (
         <DocumentDetailsDialog projectId={projectId} doc={d} onClose={() => setEditingDetails(false)} />
+      ) : null}
+      {deleting ? (
+        <ConfirmDeleteDialog
+          title={`Delete ${d.title}?`}
+          description="The document and all its versions disappear from Documents and from its position. Actions keep the record of which version was sent."
+          pending={remove.isPending}
+          onConfirm={() => remove.mutate(undefined)}
+          onClose={() => setDeleting(false)}
+        />
       ) : null}
       {editing ? (
         <LatexEditor
@@ -728,6 +815,11 @@ function LatexEditor({
           <Field label="Template version">
             <Select value={templateVersionId} onChange={(e) => setTemplateVersionId(e.target.value)}>
               <option value="">None</option>
+              {/* The version being edited may be pinned to a template deleted since. */}
+              {initialTemplateVersionId &&
+              !templates.some((t) => t.versions.some((tv) => tv.id === initialTemplateVersionId)) ? (
+                <option value={initialTemplateVersionId}>Deleted template</option>
+              ) : null}
               {templates.flatMap((t) =>
                 t.versions.map((tv) => (
                   <option key={tv.id} value={tv.id}>

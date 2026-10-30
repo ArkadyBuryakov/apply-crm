@@ -14516,6 +14516,223 @@
         }
       }
     },
+    "/api/projects/{projectId}/templates/{templateId}": {
+      "delete": {
+        "operationId": "deleteTemplate",
+        "summary": "Delete a LaTeX template",
+        "description": "Soft-deletes a template. New LaTeX versions no longer pick it up; versions pinned to it keep compiling with it.",
+        "tags": [
+          "Documents"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "template:delete"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^tpl_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "tpl_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "template ID"
+            },
+            "required": true,
+            "description": "template ID",
+            "name": "templateId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "required": false,
+            "name": "version",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The entity was changed by someone else; the response carries the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "An If-Match header or a version field is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/templates/{templateId}/restore": {
+      "post": {
+        "operationId": "restoreTemplate",
+        "summary": "Restore a deleted LaTeX template",
+        "description": "Undoes a delete.",
+        "tags": [
+          "Documents"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "template:delete"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^tpl_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "tpl_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "template ID"
+            },
+            "required": true,
+            "description": "template ID",
+            "name": "templateId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects/{projectId}/templates/{templateId}/versions": {
       "post": {
         "operationId": "uploadTemplateVersion",

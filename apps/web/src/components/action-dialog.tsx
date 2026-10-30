@@ -543,9 +543,26 @@ function AttachmentsEditor({
       (await unwrap(api.GET("/api/projects/{projectId}/documents", { params: { path: { projectId }, query: {} } })))
         .items,
   });
+  // Attachments stay on the action after their document is deleted, so they still need a name.
+  const deletedDocs = useQuery({
+    queryKey: ["documents", projectId, { deleted: "true" }],
+    enabled: value.length > 0,
+    queryFn: async () =>
+      (
+        await unwrap(
+          api.GET("/api/projects/{projectId}/documents", {
+            params: { path: { projectId }, query: { deleted: "true" } },
+          }),
+        )
+      ).items,
+  });
   const versions =
     docs.data?.flatMap((d) =>
       d.versions.map((v) => ({ id: v.id, label: `${d.title} · v${v.versionNo} (${v.filename})` })),
+    ) ?? [];
+  const deletedVersions =
+    deletedDocs.data?.flatMap((d) =>
+      d.versions.map((v) => ({ id: v.id, label: `${d.title} · v${v.versionNo} (deleted)` })),
     ) ?? [];
   if (versions.length === 0 && value.length === 0) return null;
   return (
@@ -555,7 +572,7 @@ function AttachmentsEditor({
         {value.map((id) => (
           <Chip
             key={id}
-            label={versions.find((v) => v.id === id)?.label ?? id}
+            label={[...versions, ...deletedVersions].find((v) => v.id === id)?.label ?? id}
             onRemove={() => onChange(value.filter((x) => x !== id))}
           />
         ))}

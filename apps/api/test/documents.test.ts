@@ -256,6 +256,75 @@ describe("documents", () => {
     expect(letter.body.templateVersionId).toBeNull();
   });
 
+  it("deletes and restores a document, keeping the versions actions were pinned to", async () => {
+    const doc = await owner.post(`${base()}/documents`, { kind: "resume", title: "Old resume" });
+    const v = await owner.upload(`${base()}/documents/${doc.body.id}/versions/upload`, "file", [
+      { name: "old.pdf", content: minimalPdf("Old"), type: "application/pdf" },
+    ]);
+    const action = await owner.post(`${base()}/actions`, {
+      type: "note",
+      title: "Sent the old resume",
+      attachments: [v.body.id],
+    });
+    expect(action.status).toBe(201);
+    const actionId = action.body.action.id;
+    const url = `${base()}/documents/${doc.body.id}`;
+    const ids = (r: { body: { items: { id: string }[] } }) => r.body.items.map((d) => d.id);
+
+    expect((await owner.delete(`${url}?version=${doc.body.version + 1}`)).status).toBe(412);
+    expect((await owner.delete(`${url}?version=${doc.body.version}`)).status).toBe(204);
+    expect((await owner.get(url)).status).toBe(404);
+    expect((await owner.get(`${url}/versions/${v.body.id}`)).status).toBe(404);
+    expect(ids(await owner.get(`${base()}/documents`))).not.toContain(doc.body.id);
+    expect(ids(await owner.get(`${base()}/documents?deleted=true`))).toContain(doc.body.id);
+    expect((await owner.get(`${base()}/actions/${actionId}`)).body.attachments).toEqual([v.body.id]);
+
+    expect((await owner.post(`${url}/restore`, {})).status).toBe(204);
+    expect((await owner.get(`${url}/versions/${v.body.id}`)).status).toBe(200);
+  });
+
+  it("deletes a template: hidden and no longer inferred, while pinned versions keep compiling", async () => {
+    const template = await owner.post(`${base()}/templates`, { name: "Doomed class" });
+    const tv = await owner.upload(`${base()}/templates/${template.body.id}/versions`, "files", [
+      { name: "resume.cls", content: "\\ProvidesClass{doomed}", type: "text/plain" },
+      { name: "doomed.cls", content: "\\ProvidesClass{doomed}", type: "text/plain" },
+    ]);
+    const templateVersionId = tv.body.versions[0].id;
+    const doc = await owner.post(`${base()}/documents`, { kind: "resume", title: "Pinned resume" });
+    const source = "\\documentclass{doomed}\\begin{document}Hi\\end{document}";
+    const v1 = await owner.post(`${base()}/documents/${doc.body.id}/versions/latex`, { source, templateVersionId });
+    expect(v1.body.templateVersionId).toBe(templateVersionId);
+
+    const url = `${base()}/templates/${template.body.id}`;
+    const names = async () =>
+      (await owner.get(`${base()}/templates`)).body.items.map((t: { name: string }) => t.name) as string[];
+    expect((await owner.delete(`${url}?version=${template.body.version + 1}`)).status).toBe(412);
+    expect((await owner.delete(`${url}?version=${template.body.version}`)).status).toBe(204);
+    expect(await names()).not.toContain("Doomed class");
+    const upload = await owner.upload(`${url}/versions`, "files", [
+      { name: "doomed.cls", content: "% newer", type: "text/plain" },
+    ]);
+    expect(upload.status).toBe(404);
+
+    // The pinned version recompiles with the deleted template's files.
+    const again = await owner.post(`${base()}/documents/${doc.body.id}/versions/${v1.body.id}/compile`, {});
+    expect(again.body.templateVersionId).toBe(templateVersionId);
+    const result = await runCompileJob(
+      { db: app.db, blobs: app.blobs, compiler: fakeCompiler },
+      app.jobs.compiles.at(-1)!,
+    );
+    expect(result).toBe("ready");
+
+    // New versions no longer pick it up, neither through the document nor by the class name.
+    const next = await owner.post(`${base()}/documents/${doc.body.id}/versions/latex`, { source });
+    expect(next.body.templateVersionId).toBeNull();
+
+    expect((await owner.post(`${url}/restore`, {})).status).toBe(204);
+    expect(await names()).toContain("Doomed class");
+    const restored = await owner.post(`${base()}/documents/${doc.body.id}/versions/latex`, { source });
+    expect(restored.body.templateVersionId).toBe(templateVersionId);
+  });
+
   it("picks up a template uploaded after the version was created when recompiling", async () => {
     const doc = await owner.post(`${base()}/documents`, { kind: "resume", title: "Early resume" });
     const source = "\\documentclass{earlyclass}\\begin{document}Hi\\end{document}";

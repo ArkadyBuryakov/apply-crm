@@ -218,3 +218,36 @@ test("memory page shows, adds, edits and deletes memories", async ({ page }) => 
   await page.getByRole("dialog", { name: "Delete this memory?" }).getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText("English, German and Dutch")).toBeHidden();
 });
+
+test("documents page deletes documents and templates after confirming", async ({ page }) => {
+  const request = page.request;
+  const headers = { origin: "http://localhost:3100" };
+  await request.post("/api/auth/sign-in/email", {
+    data: { email: "ada@example.test", password: "correct horse battery" },
+    headers,
+  });
+  const project = await (await request.post("/api/projects", { data: { name: "Documents" }, headers })).json();
+  const base = `/api/projects/${project.id}`;
+  const doc = await (
+    await request.post(`${base}/documents`, { data: { kind: "resume", title: "Old resume" }, headers })
+  ).json();
+  await request.post(`${base}/templates`, { data: { name: "Old class" }, headers });
+
+  await page.goto(`/p/${project.id}/documents/${doc.id}`);
+  await page.getByRole("button", { name: "Delete document" }).click();
+  const confirmDoc = page.getByRole("dialog", { name: "Delete Old resume?" });
+  await confirmDoc.getByRole("button", { name: "Cancel" }).click();
+  await expect(confirmDoc).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Old resume" })).toBeVisible();
+  await page.getByRole("button", { name: "Delete document" }).click();
+  await confirmDoc.getByRole("button", { name: "Delete" }).click();
+
+  await expect(page.getByRole("heading", { name: "Documents", exact: true })).toBeVisible();
+  await expect(page.getByText("No main documents")).toBeVisible();
+  await expect(page.getByText("Old resume")).toBeHidden();
+
+  await page.getByRole("button", { name: "Delete Old class" }).click();
+  await page.getByRole("dialog", { name: "Delete Old class?" }).getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByText("Template deleted")).toBeVisible();
+  await expect(page.getByText("Old class")).toBeHidden();
+});
