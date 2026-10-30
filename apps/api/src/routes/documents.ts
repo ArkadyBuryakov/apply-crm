@@ -5,6 +5,7 @@ import {
   documentTemplate,
   documentTemplateVersion,
   documentVersion,
+  organization,
   position,
   type TemplateFile,
   type Tx,
@@ -41,6 +42,13 @@ export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_SOURCE_CHARS = 500_000;
 
 const DocumentKindSchema = z.enum(DOCUMENT_KINDS).openapi("DocumentKind");
+const DownloadNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what this rejects
+  .regex(/^[^\\/:*?"<>|\x00-\x1f\x7f]+$/, 'A file name cannot contain \\ / : * ? " < > | or control characters');
 const CompileStatusSchema = z.enum(COMPILE_STATUSES).openapi("CompileStatus");
 
 const VersionSummarySchema = z
@@ -71,6 +79,10 @@ const DocumentSchema = z
     id: publicId("document"),
     kind: DocumentKindSchema,
     title: z.string(),
+    downloadName: z
+      .string()
+      .nullable()
+      .openapi({ description: "File name (without extension) used for downloads; empty uses the version's file name" }),
     positionId: publicId("position")
       .nullable()
       .openapi({ description: "Set for documents tailored to a position; empty for e.g. the main resume" }),
@@ -151,6 +163,7 @@ async function documentView(tx: Tx, row: DocumentRow) {
     id: pid("document", row.id),
     kind: row.kind as (typeof DOCUMENT_KINDS)[number],
     title: row.title,
+    downloadName: row.downloadName,
     positionId: pidOrNull("position", row.positionId),
     derivedFromVersionId: pidOrNull("documentVersion", row.derivedFromVersionId),
     notes: row.notes,
@@ -185,6 +198,39 @@ async function nextVersionNo(tx: Tx, documentId: string) {
     .from(documentVersion)
     .where(eq(documentVersion.documentId, documentId));
   return row?.next ?? 1;
+}
+
+/** The download name a new document gets unless one is given: see createDocument. */
+async function defaultDownloadName(tx: Tx, s: Scope, positionId: string | null, derivedFromVersionId: string | null) {
+  if (!positionId) return s.actor.name;
+  const [main] = derivedFromVersionId
+    ? await tx
+        .select({ downloadName: document.downloadName })
+        .from(documentVersion)
+        .innerJoin(document, eq(document.id, documentVersion.documentId))
+        .where(eq(documentVersion.id, derivedFromVersionId))
+    : [];
+  const [target] = await tx
+    .select({ title: position.title, company: organization.name })
+    .from(position)
+    .leftJoin(organization, eq(organization.id, position.companyId))
+    .where(eq(position.id, positionId));
+  return [main?.downloadName ?? s.actor.name, target?.company, target?.title].filter(Boolean).join(" - ");
+}
+
+/** Content-Disposition with the document's download name, keeping non-ASCII names intact (RFC 6266). */
+async function disposition(tx: Tx, type: "inline" | "attachment", row: VersionRow, extension: string) {
+  const [doc] = await tx
+    .select({ downloadName: document.downloadName })
+    .from(document)
+    .where(eq(document.id, row.documentId));
+  const name = doc?.downloadName
+    ? `${doc.downloadName}${extension}`
+    : extension === ".pdf"
+      ? `${row.filename.replace(/\.[^.]+$/, "") || "document"}.pdf`
+      : row.filename;
+  const ascii = name.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+  return `${type}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 }
 
 export const sha256 = (data: Uint8Array | string) => createHash("sha256").update(data).digest("hex");
@@ -352,7 +398,9 @@ const createDocument = defineRoute({
   summary: "Create a document",
   description:
     "Creates an empty document; add content with createLatexVersion or an upload. For a resume tailored to a " +
-    "position, set `positionId` and `derivedFromVersionId` (the main resume version it is based on).",
+    "position, set `positionId` and `derivedFromVersionId` (the main resume version it is based on). Without " +
+    "`downloadName`, main documents download as your name and tailored ones as " +
+    "`{main document's download name} - {company} - {position}`.",
   scope: "project",
   permissions: ["document:create"],
   mcp: { expose: true },
@@ -363,6 +411,7 @@ const createDocument = defineRoute({
       z.object({
         kind: DocumentKindSchema,
         title: z.string().trim().min(1).max(300),
+        downloadName: DownloadNameSchema.optional(),
         positionId: publicId("position").nullable().optional(),
         derivedFromVersionId: publicId("documentVersion").nullable().optional(),
         notes: z.string().max(100_000).nullable().optional(),
@@ -377,7 +426,7 @@ const updateDocument = defineRoute({
   path: "/api/projects/{projectId}/documents/{documentId}",
   operationId: "updateDocument",
   summary: "Update a document",
-  description: "Renames a document or changes its notes. Content changes create new versions instead.",
+  description: "Renames a document or changes its download name or notes. Content changes create new versions instead.",
   scope: "project",
   permissions: ["document:update"],
   tags: ["Documents"],
@@ -386,6 +435,7 @@ const updateDocument = defineRoute({
     body: jsonBody(
       z.object({
         title: z.string().trim().min(1).max(300).optional(),
+        downloadName: DownloadNameSchema.nullable().optional(),
         notes: z.string().max(100_000).nullable().optional(),
         version: VersionField.optional(),
       }),
@@ -723,6 +773,7 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
         projectId: s.projectId,
         kind: body.kind,
         title: body.title,
+        downloadName: body.downloadName ?? (await defaultDownloadName(tx, s, positionId, derivedFromVersionId)),
         positionId,
         derivedFromVersionId,
         notes: body.notes ?? null,
@@ -892,7 +943,7 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
     return new Response(bytes, {
       headers: {
         "content-type": row.mime,
-        "content-disposition": `attachment; filename="${row.filename}"`,
+        "content-disposition": await disposition(s.db, "attachment", row, row.filename.match(/\.[^.]+$/)?.[0] ?? ""),
       },
     }) as never;
   });
@@ -910,9 +961,11 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
     if (!key) throw notFound("PDF");
     const bytes = await c.var.deps.services.blobs.get(key);
     if (!bytes) throw notFound("PDF");
-    const name = row.filename.replace(/\.[^.]+$/, "") || "document";
     return new Response(bytes, {
-      headers: { "content-type": "application/pdf", "content-disposition": `inline; filename="${name}.pdf"` },
+      headers: {
+        "content-type": "application/pdf",
+        "content-disposition": await disposition(s.db, "inline", row, ".pdf"),
+      },
     }) as never;
   });
 

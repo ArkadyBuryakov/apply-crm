@@ -3257,6 +3257,13 @@
           "title": {
             "type": "string"
           },
+          "downloadName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "File name (without extension) used for downloads; empty uses the version's file name"
+          },
           "positionId": {
             "type": [
               "string",
@@ -3314,6 +3321,7 @@
           "id",
           "kind",
           "title",
+          "downloadName",
           "positionId",
           "derivedFromVersionId",
           "notes",
@@ -12862,7 +12870,7 @@
       "post": {
         "operationId": "createDocument",
         "summary": "Create a document",
-        "description": "Creates an empty document; add content with createLatexVersion or an upload. For a resume tailored to a position, set `positionId` and `derivedFromVersionId` (the main resume version it is based on).",
+        "description": "Creates an empty document; add content with createLatexVersion or an upload. For a resume tailored to a position, set `positionId` and `derivedFromVersionId` (the main resume version it is based on). Without `downloadName`, main documents download as your name and tailored ones as `{main document's download name} - {company} - {position}`.",
         "tags": [
           "Documents"
         ],
@@ -12909,6 +12917,12 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 300
+                  },
+                  "downloadName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\\\/:*?\"<>|\\x00-\\x1f\\x7f]+$"
                   },
                   "positionId": {
                     "type": [
@@ -13090,7 +13104,7 @@
       "patch": {
         "operationId": "updateDocument",
         "summary": "Update a document",
-        "description": "Renames a document or changes its notes. Content changes create new versions instead.",
+        "description": "Renames a document or changes its download name or notes. Content changes create new versions instead.",
         "tags": [
           "Documents"
         ],
@@ -13143,6 +13157,15 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 300
+                  },
+                  "downloadName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\\\/:*?\"<>|\\x00-\\x1f\\x7f]+$"
                   },
                   "notes": {
                     "type": [

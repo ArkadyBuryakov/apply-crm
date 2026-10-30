@@ -367,6 +367,8 @@ export const document = pgTable(
     ...entityColumns(),
     kind: text("kind").notNull(),
     title: text("title").notNull(),
+    /** File name (without extension) for downloads; null falls back to the version's own file name. */
+    downloadName: text("download_name"),
     positionId: uuid("position_id"),
     derivedFromVersionId: uuid("derived_from_version_id"),
     notes: text("notes"),

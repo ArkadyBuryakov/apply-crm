@@ -15,7 +15,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type DocumentT, type Schemas, unwrap, uploadForm } from "@/lib/api";
-import { invalidateProject, useCan, usePositions, useProjectMutation } from "@/lib/queries";
+import { invalidateProject, useCan, useMe, usePositions, useProjectMutation } from "@/lib/queries";
 import { cn, formatDateTime, humanize } from "@/lib/utils";
 
 const COMPILE_TONE = { queued: "neutral", running: "primary", ready: "success", failed: "danger" } as const;
@@ -126,6 +126,15 @@ function CreateDocumentDialog({ projectId, onClose }: { projectId: string; onClo
   const [title, setTitle] = useState("");
   const [positionId, setPositionId] = useState("");
   const [derivedFromVersionId, setDerivedFrom] = useState("");
+  // Follows the suggestion until the user types their own.
+  const [downloadName, setDownloadName] = useState<string | null>(null);
+  const me = useMe();
+  const suggestedName = (() => {
+    if (!positionId) return me.data?.name ?? "";
+    const based = mainDocs.data?.find((d) => d.versions.some((v) => v.id === derivedFromVersionId));
+    const pos = positions.data?.find((p) => p.id === positionId);
+    return [based?.downloadName ?? me.data?.name, pos?.company?.name, pos?.title].filter(Boolean).join(" - ");
+  })();
   const mainVersions =
     mainDocs.data?.flatMap((d) => d.versions.map((v) => ({ id: v.id, label: `${d.title} v${v.versionNo}` }))) ?? [];
   const save = useProjectMutation(
@@ -134,7 +143,13 @@ function CreateDocumentDialog({ projectId, onClose }: { projectId: string; onClo
       unwrap(
         api.POST("/api/projects/{projectId}/documents", {
           params: { path: { projectId } },
-          body: { kind, title, positionId: positionId || null, derivedFromVersionId: derivedFromVersionId || null },
+          body: {
+            kind,
+            title,
+            downloadName: (downloadName ?? suggestedName).trim() || undefined,
+            positionId: positionId || null,
+            derivedFromVersionId: derivedFromVersionId || null,
+          },
         }),
       ),
     {
@@ -182,6 +197,9 @@ function CreateDocumentDialog({ projectId, onClose }: { projectId: string; onClo
             </Select>
           </Field>
         ) : null}
+        <Field label="Download name" hint="File name for downloads, without the extension" className="sm:col-span-2">
+          <Input value={downloadName ?? suggestedName} onChange={(e) => setDownloadName(e.target.value)} />
+        </Field>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
@@ -277,6 +295,7 @@ export function DocumentDetailPage() {
   const positions = usePositions(projectId);
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingDetails, setEditingDetails] = useState(false);
 
   const doc = useQuery({
     queryKey: ["document", projectId, documentId],
@@ -357,11 +376,15 @@ export function DocumentDetailPage() {
                 </Link>
               </>
             ) : null}
+            {d.downloadName ? <> · downloads as “{d.downloadName}”</> : null}
           </>
         }
         actions={
           can("document:update") ? (
             <>
+              <Button variant="outline" onClick={() => setEditingDetails(true)}>
+                <Pencil /> Rename
+              </Button>
               <Button onClick={() => setEditing(true)}>
                 <Plus /> New LaTeX version
               </Button>
@@ -439,6 +462,9 @@ export function DocumentDetailPage() {
           )}
         </div>
       ) : null}
+      {editingDetails ? (
+        <DocumentDetailsDialog projectId={projectId} doc={d} onClose={() => setEditingDetails(false)} />
+      ) : null}
       {editing ? (
         <LatexEditor
           projectId={projectId}
@@ -452,6 +478,59 @@ export function DocumentDetailPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+function DocumentDetailsDialog({
+  projectId,
+  doc,
+  onClose,
+}: {
+  projectId: string;
+  doc: DocumentT;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(doc.title);
+  const [downloadName, setDownloadName] = useState(doc.downloadName ?? "");
+  const save = useProjectMutation(
+    projectId,
+    () =>
+      unwrap(
+        api.PATCH("/api/projects/{projectId}/documents/{documentId}", {
+          params: { path: { projectId, documentId: doc.id } },
+          body: { title, downloadName: downloadName.trim() || null, version: doc.version },
+        }),
+      ),
+    { success: "Document updated", onSuccess: onClose },
+  );
+  return (
+    <Dialog open onOpenChange={onClose} title="Rename document">
+      <form
+        className="grid gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate(undefined);
+        }}
+      >
+        <Field label="Title">
+          <Input required value={title} onChange={(e) => setTitle(e.target.value)} />
+        </Field>
+        <Field
+          label="Download name"
+          hint="File name for downloads, without the extension. Empty uses each version's own file name."
+        >
+          <Input value={downloadName} onChange={(e) => setDownloadName(e.target.value)} />
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!title.trim() || save.isPending}>
+            Save
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 

@@ -117,6 +117,47 @@ describe("documents", () => {
     ]);
   });
 
+  it("names downloads after the document's download name", async () => {
+    const main = await owner.post(`${base()}/documents`, { kind: "resume", title: "Main resume" });
+    expect(main.body.downloadName).toBe("owner");
+    const named = await owner.patch(`${base()}/documents/${main.body.id}`, {
+      downloadName: "Ada Lovelace",
+      version: main.body.version,
+    });
+    expect(named.body.downloadName).toBe("Ada Lovelace");
+    const v = await owner.upload(`${base()}/documents/${main.body.id}/versions/upload`, "file", [
+      { name: "cv.pdf", content: "%PDF cv", type: "application/pdf" },
+    ]);
+    const file = await owner.raw(`${base()}/documents/${main.body.id}/versions/${v.body.id}/file`);
+    expect(file.headers.get("content-disposition")).toBe(
+      `attachment; filename="Ada Lovelace.pdf"; filename*=UTF-8''Ada%20Lovelace.pdf`,
+    );
+
+    const company = (await owner.post(`${base()}/organizations`, { kind: "company", name: "Initrode" })).body;
+    const pos = (await owner.post(`${base()}/positions`, { title: "Staff engineer", companyId: company.id })).body;
+    const tailored = await owner.post(`${base()}/documents`, {
+      kind: "resume",
+      title: "Resume for Initrode",
+      positionId: pos.id,
+      derivedFromVersionId: v.body.id,
+    });
+    expect(tailored.body.downloadName).toBe("Ada Lovelace - Initrode - Staff engineer");
+
+    const custom = await owner.post(`${base()}/documents`, { kind: "other", title: "Notes", downloadName: "Заметки" });
+    const tv = await owner.upload(`${base()}/documents/${custom.body.id}/versions/upload`, "file", [
+      { name: "notes.pdf", content: "%PDF notes", type: "application/pdf" },
+    ]);
+    const pdf = await owner.raw(`${base()}/documents/${custom.body.id}/versions/${tv.body.id}/pdf`);
+    expect(pdf.headers.get("content-disposition")).toBe(
+      `inline; filename="_______.pdf"; filename*=UTF-8''${encodeURIComponent("Заметки.pdf")}`,
+    );
+    const bad = await owner.patch(`${base()}/documents/${custom.body.id}`, {
+      downloadName: "a/b",
+      version: custom.body.version,
+    });
+    expect(bad.status).toBe(422);
+  });
+
   it("records compile failures and stores uploads", async () => {
     const doc = await owner.post(`${base()}/documents`, { kind: "other", title: "Broken" });
     const v = await owner.post(`${base()}/documents/${doc.body.id}/versions/latex`, { source: "\\bad" });
