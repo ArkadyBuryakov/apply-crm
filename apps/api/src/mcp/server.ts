@@ -12,6 +12,7 @@ import { createLocalJWKSet, jwtVerify } from "jose";
 import { API_KEY_PREFIX } from "../auth.js";
 import type { Actor, AppEnv, Deps } from "../http/types.js";
 import { mcpUrlFor } from "../routes/projects.js";
+import { loadMemories, renderMemories } from "../services/memory.js";
 import { buildToolCatalog, type OpenApiDocument, type ToolDefinition, toHttpRequest } from "./catalog.js";
 
 const SERVER_INFO = { name: "apply-crm", version: "1.0.0" };
@@ -24,7 +25,8 @@ export const CRM_INSTRUCTIONS =
   "are emails, meetings, interviews, applications, take-homes, offers, reference checks, rejections, tasks and " +
   "notes, linked into a graph. Search before creating organizations or contacts. Start work on a position with " +
   "getPositionOverview; record what happened with logInteraction. Read a document's contents (resumes, offer " +
-  "letters, …) with readDocumentVersion. Updates need the entity's current `version`.";
+  "letters, …) with readDocumentVersion. Updates need the entity's current `version`. Memory: listUserMemories " +
+  "and listProjectMemories hold what earlier conversations saved; reuse it and keep it up to date.";
 
 /** The tool catalog, built once from the OpenAPI document on first use. */
 export function lazyToolCatalog(getDocument: () => OpenApiDocument) {
@@ -61,7 +63,9 @@ export function registerMcp(app: OpenAPIHono<AppEnv>, deps: Deps, tools: () => T
 
     const projectPublicId = c.req.param("projectId")!;
     const allowed = tools().filter((t) => roleHas(caller.role, ...t.permissions));
-    const handler = createMcpHandler(() => buildServer(app, allowed, caller.actor, projectPublicId), {
+    const memory = renderMemories(await loadMemories(deps.db, caller.actor.userId, projectId));
+    const instructions = `${CRM_INSTRUCTIONS}\n\n${memory}`;
+    const handler = createMcpHandler(() => buildServer(app, allowed, caller.actor, projectPublicId, instructions), {
       legacy: "stateless",
     });
     try {
@@ -163,8 +167,14 @@ async function verifyAccessToken(deps: Deps, token: string, resource: string): P
   }
 }
 
-function buildServer(app: OpenAPIHono<AppEnv>, tools: ToolDefinition[], actor: Actor, projectPublicId: string) {
-  const server = new McpServer(SERVER_INFO, { instructions: CRM_INSTRUCTIONS });
+function buildServer(
+  app: OpenAPIHono<AppEnv>,
+  tools: ToolDefinition[],
+  actor: Actor,
+  projectPublicId: string,
+  instructions: string,
+) {
+  const server = new McpServer(SERVER_INFO, { instructions });
   for (const tool of tools) {
     server.registerTool(
       tool.name,

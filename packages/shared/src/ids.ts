@@ -21,6 +21,8 @@ export const ID_PREFIXES = {
   templateVersion: "tv",
   chat: "cht",
   chatAttachment: "cha",
+  projectMemory: "pmem",
+  userMemory: "umem",
 } as const;
 
 export type IdKind = keyof typeof ID_PREFIXES;

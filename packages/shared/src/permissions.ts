@@ -20,6 +20,7 @@ export const statements = {
   comment: ["read", "create", "moderate"],
   document: crud,
   template: crud,
+  memory: crud,
   audit: ["read"],
   data: ["export", "import"],
 } as const;
@@ -42,6 +43,7 @@ const readAll = {
   comment: ["read"],
   document: ["read"],
   template: ["read"],
+  memory: ["read"],
   audit: ["read"],
   ac: ["read"],
 } satisfies Grants;
@@ -58,6 +60,7 @@ const writeAll = {
   comment: ["read", "create"],
   document: [...crud],
   template: [...crud],
+  memory: [...crud],
   data: ["export", "import"],
 } satisfies Grants;
 

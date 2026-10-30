@@ -20,6 +20,7 @@ import {
   positionStage,
   project,
   projectMember,
+  projectMemory,
   type TemplateFile,
   type Tx,
   user,
@@ -171,6 +172,8 @@ const ExportSchema = z.object({
       deletedAt: nullableTs,
     }),
   ),
+  // Added after schema version 1 shipped; older archives have none.
+  memories: z.array(Common.extend({ title: z.string(), content: z.string() })).default([]),
 });
 
 export type ProjectExport = z.infer<typeof ExportSchema>;
@@ -220,7 +223,7 @@ export async function exportProject(db: Db, blobs: BlobStore, projectId: string)
       db.select().from(actionSubject).where(byProject(actionSubject)),
       db.select().from(actionParticipant).where(byProject(actionParticipant)),
     ]);
-  const [attachments, edges, templates, templateVersions, documents, versions, comments] = await Promise.all([
+  const [attachments, edges, templates, templateVersions, documents, versions, comments, memories] = await Promise.all([
     db.select().from(actionAttachment).where(byProject(actionAttachment)),
     db.select().from(actionEdge).where(byProject(actionEdge)),
     db.select().from(documentTemplate).where(byProject(documentTemplate)).orderBy(asc(documentTemplate.id)),
@@ -228,6 +231,7 @@ export async function exportProject(db: Db, blobs: BlobStore, projectId: string)
     db.select().from(document).where(byProject(document)).orderBy(asc(document.id)),
     db.select().from(documentVersion).where(byProject(documentVersion)),
     db.select().from(comment).where(byProject(comment)),
+    db.select().from(projectMemory).where(byProject(projectMemory)).orderBy(asc(projectMemory.id)),
   ]);
 
   const data: ProjectExport = {
@@ -321,6 +325,7 @@ export async function exportProject(db: Db, blobs: BlobStore, projectId: string)
       editedAt: c.editedAt,
       deletedAt: c.deletedAt,
     })),
+    memories: memories.map((m) => ({ ...common(m), title: m.title, content: m.content })),
   };
 
   for (const t of templates) {
@@ -377,7 +382,8 @@ export type ImportSummary = Record<
   | "edges"
   | "documents"
   | "templates"
-  | "comments",
+  | "comments"
+  | "memories",
   number
 >;
 
@@ -432,6 +438,7 @@ export async function importProject(tx: Tx, s: Scope, blobs: BlobStore, zip: Uin
     documents: 0,
     templates: 0,
     comments: 0,
+    memories: 0,
   };
 
   const members = await tx
@@ -692,6 +699,18 @@ export async function importProject(tx: Tx, s: Scope, blobs: BlobStore, zip: Uin
       deletedAt: c.deletedAt,
     });
     summary.comments++;
+  }
+  for (const m of data.memories) {
+    await tx.insert(projectMemory).values({
+      ...owned,
+      id: newUuid(),
+      title: m.title,
+      content: m.content,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+      deletedAt: m.deletedAt,
+    });
+    summary.memories++;
   }
 
   await audit(tx, s, { entityType: "project", entityId: s.projectId, op: "create", diff: { imported: summary } });

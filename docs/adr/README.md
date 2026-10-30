@@ -36,5 +36,6 @@ Records are never edited after acceptance except to change status. To revise a d
 | 0029 | [Action type catalogue](0029-action-type-catalogue.md) | Accepted, amends 0004, 0013 |
 | 0030 | [Decisions made while implementing v1](0030-v1-implementation-decisions.md) | Accepted, amends 0006, 0007, 0010, 0011, 0012, 0027 |
 | 0031 | [In-app assistant](0031-in-app-assistant.md) | Accepted, refines 0015 |
+| 0032 | [Assistant memory](0032-assistant-memory.md) | Accepted |
 
 Open questions live in `docs/questions/`.

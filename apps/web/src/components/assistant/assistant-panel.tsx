@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { History, MessageSquarePlus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { USER_MEMORIES_KEY } from "@/components/memory";
 import { Button } from "@/components/ui/button";
 import { Loading, Spinner } from "@/components/ui/misc";
 import { api, type Schemas, unwrap } from "@/lib/api";
@@ -151,8 +152,9 @@ export function AssistantPanel({ projectId, onClose }: { projectId: string; onCl
           models={available}
           onSettingsChange={updateSettings}
           onTurnEnd={() => {
-            // Tools may have changed project data; the chat list shows the new title and order.
+            // Tools may have changed project data or the user's memory; the chat list shows the new title and order.
             invalidateProject(qc, projectId);
+            qc.invalidateQueries({ queryKey: USER_MEMORIES_KEY });
             qc.invalidateQueries({ queryKey: ["assistant-chats", projectId] });
           }}
         />

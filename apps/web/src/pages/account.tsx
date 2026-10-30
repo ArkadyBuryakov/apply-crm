@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft, Copy, LogOut, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { UserMemoryCard } from "@/components/memory";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
@@ -37,6 +38,7 @@ export function AccountPage() {
       {me.data ? <ProfileCard name={me.data.name} timezone={me.data.timezone} /> : null}
       <ApiKeysCard />
       <AiProvidersCard />
+      <UserMemoryCard />
       {me.data?.isInstanceAdmin ? <InstanceInvitationsCard /> : null}
     </div>
   );

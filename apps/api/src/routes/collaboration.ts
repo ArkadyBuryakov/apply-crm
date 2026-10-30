@@ -231,6 +231,7 @@ const ENTITY_KIND_BY_PREFIX: Record<string, IdKind> = {
   doc: "document",
   aff: "affiliation",
   hdl: "handle",
+  pmem: "projectMemory",
 };
 
 export function registerCollaborationRoutes(app: OpenAPIHono<AppEnv>) {

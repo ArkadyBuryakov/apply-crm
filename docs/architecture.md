@@ -157,6 +157,7 @@ Fields and allowed statuses are listed in [`domain/action-types.md`](domain/acti
 | Import/export | versioned JSON + zip, round-trippable; CSV import for positions | 0017 |
 | Backups | Coolify Postgres backups and a document mirror into a separate bucket with separate credentials | 0027 |
 | In-app assistant | sidebar chat in the SPA; agent loop in the API on the user's own provider key (Anthropic, OpenAI, Google); MCP catalog tools in-process, router-derived navigation tool run in the browser; chats private to their author | 0031 |
+| Assistant memory | user memory (private, all projects) and project memory (shared, audited, exported); exposed as MCP tools and given to agents in their instructions; viewed and edited on the Memory page | 0032 |
 
 ## Codebase
 

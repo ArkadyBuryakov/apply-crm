@@ -8,6 +8,7 @@ import { registerDataRoutes } from "./data.js";
 import { registerDocumentRoutes } from "./documents.js";
 import { registerGraphRoutes } from "./graph.js";
 import { registerLookupRoutes } from "./lookups.js";
+import { registerMemoryRoutes } from "./memory.js";
 import { registerOrganizationRoutes } from "./organizations.js";
 import { registerPositionRoutes } from "./positions.js";
 import { registerProjectRoutes } from "./projects.js";
@@ -24,4 +25,5 @@ export function registerApiRoutes(app: OpenAPIHono<AppEnv>) {
   registerCompositeRoutes(app);
   registerDocumentRoutes(app);
   registerDataRoutes(app);
+  registerMemoryRoutes(app);
 }

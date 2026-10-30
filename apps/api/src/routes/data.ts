@@ -25,6 +25,7 @@ const ImportSummarySchema = z
     documents: z.int(),
     templates: z.int(),
     comments: z.int(),
+    memories: z.int(),
   })
   .openapi("ImportSummary", { description: "Number of entities created" });
 

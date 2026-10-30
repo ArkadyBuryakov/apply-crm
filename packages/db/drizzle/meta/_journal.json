@@ -22,6 +22,13 @@
       "when": 1793182708266,
       "tag": "0002_assistant_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793294820282,
+      "tag": "0003_assistant_memory",
+      "breakpoints": true
     }
   ]
 }

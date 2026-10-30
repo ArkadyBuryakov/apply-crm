@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import {
   Bell,
+  Brain,
   Building2,
   CalendarDays,
   ChevronLeft,
@@ -34,6 +35,7 @@ const NAV = [
   { to: "/p/$projectId/contacts", label: "Contacts", icon: Users },
   { to: "/p/$projectId/graph", label: "Action graph", icon: Network },
   { to: "/p/$projectId/documents", label: "Documents", icon: FileText },
+  { to: "/p/$projectId/memory", label: "Memory", icon: Brain },
   { to: "/p/$projectId/settings", label: "Settings", icon: Settings },
 ] as const;
 

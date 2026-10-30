@@ -13,6 +13,7 @@ import { ContactDetailPage, ContactsPage } from "./pages/project/contacts";
 import { DocumentDetailPage, DocumentsPage } from "./pages/project/documents";
 import { GraphPage } from "./pages/project/graph";
 import { ProjectLayout } from "./pages/project/layout";
+import { MemoryPage } from "./pages/project/memory";
 import { OrganizationDetailPage, OrganizationsPage } from "./pages/project/organizations";
 import { PositionPage } from "./pages/project/position";
 import { SearchPage } from "./pages/project/search";
@@ -63,7 +64,9 @@ const accountRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/account",
   component: AccountPage,
-  staticData: { description: "The user's account: profile, timezone, API keys and AI provider keys" },
+  staticData: {
+    description: "The user's account: profile, timezone, API keys, AI provider keys and the user's memory",
+  },
 });
 
 const projectRoute = createRoute({
@@ -144,6 +147,12 @@ const searchRoute = createRoute({
   validateSearch: z.object({ q: z.string().default("").describe("Search text") }),
   staticData: { description: "Full-text search over organizations, positions, contacts and actions" },
 });
+const memoryRoute = createRoute({
+  getParentRoute: () => projectRoute,
+  path: "/memory",
+  component: MemoryPage,
+  staticData: { description: "Memory: what agents remember about this project and about the user, editable" },
+});
 const settingsRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/settings",
@@ -171,6 +180,7 @@ const routeTree = rootRoute.addChildren([
       documentsRoute,
       documentRoute,
       searchRoute,
+      memoryRoute,
       settingsRoute,
     ]),
   ]),

@@ -3618,6 +3618,9 @@
           },
           "comments": {
             "type": "integer"
+          },
+          "memories": {
+            "type": "integer"
           }
         },
         "required": [
@@ -3630,9 +3633,88 @@
           "edges",
           "documents",
           "templates",
-          "comments"
+          "comments",
+          "memories"
         ],
         "description": "Number of entities created"
+      },
+      "UserMemory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^umem_[0-9A-HJKMNP-TV-Z]{26}$",
+            "example": "umem_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+            "description": "userMemory ID"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "content",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ProjectMemory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^pmem_[0-9A-HJKMNP-TV-Z]{26}$",
+            "example": "pmem_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+            "description": "projectMemory ID"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-26T14:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "content",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "AiProviderStatus": {
         "type": "object",
@@ -15017,6 +15099,788 @@
           },
           "422": {
             "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/memories": {
+      "get": {
+        "operationId": "listUserMemories",
+        "summary": "List your memories",
+        "description": "Your private memory: facts about you that agents reuse in all of your projects. Oldest first.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserMemory"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUserMemory",
+        "summary": "Remember something about you",
+        "description": "Saves a fact about the user that applies in all of their projects (background, preferences, writing style, …). Only the user can see it. Update an existing memory on the same topic instead of adding a near-duplicate.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "What the memory is about, in one line"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Markdown"
+                  }
+                },
+                "required": [
+                  "title",
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMemory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/memories/{memoryId}": {
+      "patch": {
+        "operationId": "updateUserMemory",
+        "summary": "Update one of your memories",
+        "description": "Changes the title or content of a memory. Pass the current `version`.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^umem_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "umem_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "userMemory ID"
+            },
+            "required": true,
+            "description": "userMemory ID",
+            "name": "memoryId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "What the memory is about, in one line"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Markdown"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Current version of the entity (optimistic concurrency). Alternative to If-Match."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMemory"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The entity was changed by someone else; the response carries the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "An If-Match header or a version field is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteUserMemory",
+        "summary": "Forget one of your memories",
+        "description": "Deletes a memory for good. Pass the current `version`.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "user",
+        "x-permissions": [],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^umem_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "umem_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "userMemory ID"
+            },
+            "required": true,
+            "description": "userMemory ID",
+            "name": "memoryId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "required": false,
+            "name": "version",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The entity was changed by someone else; the response carries the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "An If-Match header or a version field is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/memories": {
+      "get": {
+        "operationId": "listProjectMemories",
+        "summary": "List the project's memories",
+        "description": "Facts about this job search that agents reuse, shared with every member. Oldest first.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "memory:read"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectMemory"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProjectMemory",
+        "summary": "Remember something about this project",
+        "description": "Saves a fact about this job search (goals, constraints, decisions, context that fits no CRM record), shared with every member. Update an existing memory on the same topic instead of adding a near-duplicate.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "memory:create"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "What the memory is about, in one line"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Markdown"
+                  }
+                },
+                "required": [
+                  "title",
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMemory"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/memories/{memoryId}": {
+      "patch": {
+        "operationId": "updateProjectMemory",
+        "summary": "Update a project memory",
+        "description": "Changes the title or content of a memory. Pass the current `version`.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "memory:update"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^pmem_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "pmem_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "projectMemory ID"
+            },
+            "required": true,
+            "description": "projectMemory ID",
+            "name": "memoryId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "What the memory is about, in one line"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Markdown"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Current version of the entity (optimistic concurrency). Alternative to If-Match."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMemory"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The entity was changed by someone else; the response carries the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "An If-Match header or a version field is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProjectMemory",
+        "summary": "Forget a project memory",
+        "description": "Deletes a memory. Pass the current `version`.",
+        "tags": [
+          "Memory"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "memory:delete"
+        ],
+        "x-mcp": {
+          "expose": true
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^pmem_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "pmem_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "projectMemory ID"
+            },
+            "required": true,
+            "description": "projectMemory ID",
+            "name": "memoryId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "required": false,
+            "name": "version",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The entity was changed by someone else; the response carries the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "An If-Match header or a version field is required",
             "content": {
               "application/json": {
                 "schema": {

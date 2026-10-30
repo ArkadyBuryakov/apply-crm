@@ -581,3 +581,33 @@ export const chatAttachment = pgTable(
   },
   (t) => [index("chat_attachment_chat_idx").on(t.chatId)],
 );
+
+// ---------------------------------------------------------------------------
+// Assistant memory (ADR 0032): notes agents reuse across conversations. Project memory is project data shared with
+// every member; user memory is private to its user and applies in all of their projects.
+
+export const projectMemory = pgTable(
+  "project_memory",
+  {
+    ...entityColumns(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+  },
+  (t) => [index("project_memory_project_idx").on(t.projectId)],
+);
+
+export const userMemory = pgTable(
+  "user_memory",
+  {
+    id: uuid("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    version: integer("version").notNull().default(1),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("user_memory_user_idx").on(t.userId)],
+);

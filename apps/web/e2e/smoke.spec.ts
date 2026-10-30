@@ -172,3 +172,47 @@ test("assistant navigates the app and continues with the result", async ({ page 
   expect(chatId).toMatch(/^cht_/);
   expect(page.url()).toContain(project.id);
 });
+
+test("memory page shows, adds, edits and deletes memories", async ({ page }) => {
+  const request = page.request;
+  const headers = { origin: "http://localhost:3100" };
+  await request.post("/api/auth/sign-in/email", {
+    data: { email: "ada@example.test", password: "correct horse battery" },
+    headers,
+  });
+  const project = await (await request.post("/api/projects", { data: { name: "Memory" }, headers })).json();
+  // As if an agent had saved it.
+  await request.post(`/api/projects/${project.id}/memories`, {
+    data: { title: "Goal", content: "Staff role by **March**" },
+    headers,
+  });
+
+  await page.goto(`/p/${project.id}`);
+  await page.getByRole("link", { name: "Memory" }).click();
+  await expect(page.getByRole("heading", { name: "Memory", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Goal" })).toBeVisible();
+  await expect(page.getByText("March")).toBeVisible();
+
+  const yours = page.locator("div.rounded-lg", { has: page.getByRole("heading", { name: "Your memory" }) });
+  await yours.getByRole("button", { name: "Add" }).click();
+  const dialog = page.getByRole("dialog", { name: "New memory" });
+  await dialog.getByLabel("Title").fill("Languages");
+  await dialog.getByLabel("Content").fill("English and German");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(yours.getByText("English and German")).toBeVisible();
+
+  await yours.getByRole("button", { name: "Edit memory" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit memory" });
+  await edit.getByLabel("Content").fill("English, German and Dutch");
+  await edit.getByRole("button", { name: "Save" }).click();
+  await expect(yours.getByText("English, German and Dutch")).toBeVisible();
+  if (process.env.SCREENSHOTS) await page.screenshot({ path: `${process.env.SCREENSHOTS}/memory.png`, fullPage: true });
+
+  // The user's memory is on the account page too.
+  await page.goto("/account");
+  await expect(page.getByText("English, German and Dutch")).toBeVisible();
+  await page.getByRole("button", { name: "Delete memory" }).click();
+  await page.getByRole("dialog", { name: "Delete this memory?" }).getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByText("English, German and Dutch")).toBeHidden();
+});

@@ -20,6 +20,7 @@ import type { Actor, AppEnv } from "../http/types.js";
 import type { ToolDefinition } from "../mcp/catalog.js";
 import { CRM_INSTRUCTIONS } from "../mcp/server.js";
 import type { BlobStore } from "../services/blobs.js";
+import { loadMemories, renderMemories } from "../services/memory.js";
 import { cacheBreakpoint, type ModelRef, providerOptions, webSearchTools } from "./providers.js";
 import { approvalPolicy, crmTools, NAVIGATE_TOOL, type NavigationDefinition, navigationTool } from "./tools.js";
 
@@ -181,10 +182,10 @@ export async function runTurn(input: TurnInput): Promise<Response> {
     ...(input.navigation ? navigationTool(input.navigation) : {}),
     ...(input.chat.webSearch ? webSearchTools(input.model, input.apiKey) : {}),
   };
-  const [projectRow] = await input.db
-    .select({ name: project.name })
-    .from(project)
-    .where(eq(project.id, input.projectId));
+  const [[projectRow], memories] = await Promise.all([
+    input.db.select({ name: project.name }).from(project).where(eq(project.id, input.projectId)),
+    loadMemories(input.db, input.actor.userId, input.projectId),
+  ]);
   const modelMessages = await convertToModelMessages(
     await inlineAttachments(input.db, input.blobs, input.chat.id, history),
     { tools, ignoreIncompleteToolCalls: true },
@@ -192,7 +193,7 @@ export async function runTurn(input: TurnInput): Promise<Response> {
 
   const result = streamText({
     model: input.languageModel,
-    instructions: instructions(input, projectRow?.name ?? "this project"),
+    instructions: instructions(input, projectRow?.name ?? "this project", renderMemories(memories)),
     messages: modelMessages,
     tools,
     toolApproval: approvalPolicy(input.chat.approvalMode as ChatApprovalMode, input.catalog),
@@ -218,7 +219,7 @@ export async function runTurn(input: TurnInput): Promise<Response> {
   });
 }
 
-function instructions(input: TurnInput, projectName: string): SystemModelMessage[] {
+function instructions(input: TurnInput, projectName: string, memory: string): SystemModelMessage[] {
   const stable = [
     `You are the assistant built into Apply CRM, a self-hosted job-search CRM. You work inside the project ` +
       `"${projectName}", where the user's role is ${input.role}.`,
@@ -243,6 +244,8 @@ function instructions(input: TurnInput, projectName: string): SystemModelMessage
     .join("\n");
   return [
     { role: "system", content: stable, providerOptions: cacheBreakpoint(input.model) },
+    // Memory changes when the assistant saves something, so it stays out of the cached prefix.
+    { role: "system", content: memory },
     { role: "system", content: context },
   ];
 }

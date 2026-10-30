@@ -59,6 +59,7 @@ describe("export and import", () => {
       })
     ).body;
     await owner.post(`${base()}/comments`, { targetType: "position", targetId: pos.id, body: "Dream job" });
+    await owner.post(`${base()}/memories`, { title: "Target salary", content: "At least 150k EUR" });
 
     const exported = await owner.raw(`${base()}/export`);
     expect(exported.status).toBe(200);
@@ -78,6 +79,7 @@ describe("export and import", () => {
       edges: 1,
       documents: 1,
       comments: 1,
+      memories: 1,
     });
     // Seeded channels and stages were matched, not duplicated.
     expect(imported.body.channels).toBe(0);
