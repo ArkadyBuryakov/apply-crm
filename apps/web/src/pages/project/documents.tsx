@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type DocumentT, type Schemas, unwrap, uploadForm } from "@/lib/api";
 import { invalidateProject, useCan, usePositions, useProjectMutation } from "@/lib/queries";
 import { cn, formatDateTime, humanize } from "@/lib/utils";
@@ -424,32 +425,14 @@ export function DocumentDetailPage() {
                   </Button>
                 ) : null}
               </div>
-              {v.hasPdf ? (
-                <iframe
-                  title="PDF preview"
-                  src={`${base}/${v.id}/pdf`}
-                  className="h-[70vh] w-full rounded-lg border border-border"
-                />
-              ) : null}
-              {v.compileStatus === "failed" ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-destructive">Compile log</CardTitle>
-                  </CardHeader>
-                  <pre className="max-h-80 overflow-auto p-4 text-xs">{v.compileLog}</pre>
-                </Card>
-              ) : null}
-              {v.source !== null ? (
-                <SourceCard
-                  key={v.id}
-                  projectId={projectId}
-                  documentId={documentId}
-                  version={v}
-                  source={v.source}
-                  editable={can("document:update")}
-                  onCreated={(id) => setSelected(id)}
-                />
-              ) : null}
+              <Preview
+                projectId={projectId}
+                documentId={documentId}
+                version={v}
+                pdfUrl={`${base}/${v.id}/pdf`}
+                editable={can("document:update")}
+                onCreated={(id) => setSelected(id)}
+              />
             </div>
           ) : (
             <Loading />
@@ -472,8 +455,81 @@ export function DocumentDetailPage() {
   );
 }
 
+type PreviewTab = "pdf" | "source" | "log";
+
+/**
+ * A version's formats as tabs: the PDF, the LaTeX source and the compile log, each when the version has it. A tab the
+ * user picked stays selected across versions that have it; otherwise the PDF comes first.
+ */
+function Preview({
+  projectId,
+  documentId,
+  version,
+  pdfUrl,
+  editable,
+  onCreated,
+}: {
+  projectId: string;
+  documentId: string;
+  version: VersionDetail;
+  pdfUrl: string;
+  editable: boolean;
+  onCreated: (versionId: string) => void;
+}) {
+  const [picked, setPicked] = useState<PreviewTab | null>(null);
+  const available: PreviewTab[] = [
+    ...(version.hasPdf ? (["pdf"] as const) : []),
+    ...(version.source !== null ? (["source"] as const) : []),
+    ...(version.compileLog ? (["log"] as const) : []),
+  ];
+  // A failed compile has no PDF; its log explains why, so it comes before the source.
+  const fallback = version.compileStatus === "failed" && available.includes("log") ? "log" : available[0];
+  const tab = picked && available.includes(picked) ? picked : fallback;
+  if (!tab) return null;
+
+  return (
+    <Tabs value={tab} onValueChange={(value) => setPicked(value as PreviewTab)}>
+      <TabsList>
+        {available.includes("pdf") ? <TabsTrigger value="pdf">PDF</TabsTrigger> : null}
+        {available.includes("source") ? <TabsTrigger value="source">Source</TabsTrigger> : null}
+        {available.includes("log") ? (
+          <TabsTrigger value="log" className={cn(version.compileStatus === "failed" && "text-destructive")}>
+            Compile log
+          </TabsTrigger>
+        ) : null}
+      </TabsList>
+      {available.includes("pdf") ? (
+        <TabsContent value="pdf">
+          <iframe title="PDF preview" src={pdfUrl} className="h-[75vh] w-full rounded-lg border border-border" />
+        </TabsContent>
+      ) : null}
+      {version.source !== null ? (
+        // Kept mounted so an unsaved edit survives a look at the PDF.
+        <TabsContent value="source" forceMount className="data-[state=inactive]:hidden">
+          <SourceEditor
+            key={version.id}
+            projectId={projectId}
+            documentId={documentId}
+            version={version}
+            source={version.source}
+            editable={editable}
+            onCreated={onCreated}
+          />
+        </TabsContent>
+      ) : null}
+      {available.includes("log") ? (
+        <TabsContent value="log">
+          <pre className="max-h-[75vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border p-4 text-xs">
+            {version.compileLog}
+          </pre>
+        </TabsContent>
+      ) : null}
+    </Tabs>
+  );
+}
+
 /** The LaTeX source of a version, edited in place; saving adds a new version with the same template and file name. */
-function SourceCard({
+function SourceEditor({
   projectId,
   documentId,
   version,
@@ -501,42 +557,43 @@ function SourceCard({
     { success: "Saved as a new version; compiling…", onSuccess: (v) => onCreated(v.id) },
   );
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Source</CardTitle>
-        {draft !== null ? (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setDraft(null)}>
-              Cancel
+    <div className="grid gap-2">
+      {editable ? (
+        <div className="flex justify-end gap-2">
+          {draft !== null ? (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setDraft(null)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!draft.trim() || draft === source || save.isPending}
+                onClick={() => save.mutate(undefined)}
+              >
+                Save as new version
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setDraft(source)}>
+              <Pencil /> Edit
             </Button>
-            <Button
-              size="sm"
-              disabled={!draft.trim() || draft === source || save.isPending}
-              onClick={() => save.mutate(undefined)}
-            >
-              Save as new version
-            </Button>
-          </div>
-        ) : editable ? (
-          <Button variant="outline" size="sm" onClick={() => setDraft(source)}>
-            <Pencil /> Edit
-          </Button>
-        ) : null}
-      </CardHeader>
-      {draft !== null ? (
-        <div className="p-2">
-          <Textarea
-            aria-label="Source"
-            className="min-h-[60vh] font-mono text-xs"
-            spellCheck={false}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
+          )}
         </div>
+      ) : null}
+      {draft !== null ? (
+        <Textarea
+          aria-label="LaTeX source"
+          className="min-h-[70vh] font-mono text-xs"
+          spellCheck={false}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
       ) : (
-        <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words p-4 text-xs">{source}</pre>
+        <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border p-4 text-xs">
+          {source}
+        </pre>
       )}
-    </Card>
+    </div>
   );
 }
 
