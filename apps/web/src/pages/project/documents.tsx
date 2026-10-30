@@ -630,7 +630,12 @@ function SourceEditor({
       unwrap(
         api.POST("/api/projects/{projectId}/documents/{documentId}/versions/latex", {
           params: { path: { projectId, documentId } },
-          body: { source: draft!, templateVersionId: version.templateVersionId, filename: version.filename },
+          // Without a template, leave it out so the API can pick one by the document class.
+          body: {
+            source: draft!,
+            ...(version.templateVersionId ? { templateVersionId: version.templateVersionId } : {}),
+            filename: version.filename,
+          },
         }),
       ),
     { success: "Saved as a new version; compiling…", onSuccess: (v) => onCreated(v.id) },

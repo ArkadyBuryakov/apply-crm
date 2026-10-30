@@ -599,7 +599,9 @@ const recompile = defineRoute({
   path: "/api/projects/{projectId}/documents/{documentId}/versions/{versionId}/compile",
   operationId: "compileDocumentVersion",
   summary: "Compile a LaTeX version again",
-  description: "Queues compilation again, e.g. after a failure caused by the template.",
+  description:
+    "Queues compilation again, e.g. after a failure caused by the template. A version without a template picks one " +
+    "up the way a new version would, by the class named in `\\documentclass`.",
   scope: "project",
   permissions: ["document:update"],
   tags: ["Documents"],
@@ -978,12 +980,18 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
       uuidOf("document", params.documentId),
       uuidOf("documentVersion", params.versionId),
     );
-    if (row.source === null) throw badRequest("Only LaTeX versions are compiled");
-    const [updated] = await s.db
-      .update(documentVersion)
-      .set({ compileStatus: "queued" })
-      .where(eq(documentVersion.id, row.id))
-      .returning();
+    const source = row.source;
+    if (source === null) throw badRequest("Only LaTeX versions are compiled");
+    const updated = await s.db.transaction(async (tx) => {
+      // The template may have been uploaded after this version was created. A version with a template stays pinned.
+      const templateVersionId = row.templateVersionId ?? (await inferTemplateVersion(tx, s, row.documentId, source));
+      const [queued] = await tx
+        .update(documentVersion)
+        .set({ compileStatus: "queued", templateVersionId })
+        .where(eq(documentVersion.id, row.id))
+        .returning();
+      return queued;
+    });
     await c.var.deps.services.jobs.enqueueCompile({ projectId: s.projectId, documentVersionId: row.id });
     return c.json(versionDetail(updated!), 202);
   });

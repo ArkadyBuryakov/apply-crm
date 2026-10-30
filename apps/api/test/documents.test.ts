@@ -255,4 +255,28 @@ describe("documents", () => {
     });
     expect(letter.body.templateVersionId).toBeNull();
   });
+
+  it("picks up a template uploaded after the version was created when recompiling", async () => {
+    const doc = await owner.post(`${base()}/documents`, { kind: "resume", title: "Early resume" });
+    const source = "\\documentclass{earlyclass}\\begin{document}Hi\\end{document}";
+    const v1 = await owner.post(`${base()}/documents/${doc.body.id}/versions/latex`, { source, filename: "cv.tex" });
+    expect(v1.body.templateVersionId).toBeNull();
+
+    const template = await owner.post(`${base()}/templates`, { name: "Early class" });
+    const tv = await owner.upload(`${base()}/templates/${template.body.id}/versions`, "files", [
+      { name: "earlyclass.cls", content: "\\ProvidesClass{earlyclass}", type: "text/plain" },
+    ]);
+    const templateVersionId = tv.body.versions[0].id;
+
+    const again = await owner.post(`${base()}/documents/${doc.body.id}/versions/${v1.body.id}/compile`, {});
+    expect(again.status).toBe(202);
+    expect(again.body.templateVersionId).toBe(templateVersionId);
+
+    // A version that already has a template stays pinned to it, even when a newer one exists.
+    await owner.upload(`${base()}/templates/${template.body.id}/versions`, "files", [
+      { name: "earlyclass.cls", content: "% newer", type: "text/plain" },
+    ]);
+    const pinned = await owner.post(`${base()}/documents/${doc.body.id}/versions/${v1.body.id}/compile`, {});
+    expect(pinned.body.templateVersionId).toBe(templateVersionId);
+  });
 });

@@ -14190,7 +14190,7 @@
       "post": {
         "operationId": "compileDocumentVersion",
         "summary": "Compile a LaTeX version again",
-        "description": "Queues compilation again, e.g. after a failure caused by the template.",
+        "description": "Queues compilation again, e.g. after a failure caused by the template. A version without a template picks one up the way a new version would, by the class named in `\\documentclass`.",
         "tags": [
           "Documents"
         ],
