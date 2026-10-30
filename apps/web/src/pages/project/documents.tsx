@@ -4,7 +4,7 @@
 import { DOCUMENT_KINDS, type DocumentKind } from "@crm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Download, FileUp, Plus, RefreshCw, Upload } from "lucide-react";
+import { Download, FileUp, Pencil, Plus, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -376,7 +376,7 @@ export function DocumentDetailPage() {
         <EmptyState title="No versions yet">Add LaTeX source or upload a file.</EmptyState>
       ) : null}
       {d.versions.length ? (
-        <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <Card className="h-fit">
             <CardHeader>
               <CardTitle>Versions</CardTitle>
@@ -401,7 +401,7 @@ export function DocumentDetailPage() {
             </div>
           </Card>
           {v ? (
-            <div className="grid gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-4">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-muted-foreground">
                   {v.filename} · {Math.ceil(v.size / 1024)} KB · {formatDateTime(v.createdAt)}
@@ -440,12 +440,15 @@ export function DocumentDetailPage() {
                 </Card>
               ) : null}
               {v.source !== null ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Source</CardTitle>
-                  </CardHeader>
-                  <pre className="max-h-[60vh] overflow-auto p-4 text-xs">{v.source}</pre>
-                </Card>
+                <SourceCard
+                  key={v.id}
+                  projectId={projectId}
+                  documentId={documentId}
+                  version={v}
+                  source={v.source}
+                  editable={can("document:update")}
+                  onCreated={(id) => setSelected(id)}
+                />
               ) : null}
             </div>
           ) : (
@@ -466,6 +469,74 @@ export function DocumentDetailPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+/** The LaTeX source of a version, edited in place; saving adds a new version with the same template and file name. */
+function SourceCard({
+  projectId,
+  documentId,
+  version,
+  source,
+  editable,
+  onCreated,
+}: {
+  projectId: string;
+  documentId: string;
+  version: VersionDetail;
+  source: string;
+  editable: boolean;
+  onCreated: (versionId: string) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const save = useProjectMutation(
+    projectId,
+    () =>
+      unwrap(
+        api.POST("/api/projects/{projectId}/documents/{documentId}/versions/latex", {
+          params: { path: { projectId, documentId } },
+          body: { source: draft!, templateVersionId: version.templateVersionId, filename: version.filename },
+        }),
+      ),
+    { success: "Saved as a new version; compiling…", onSuccess: (v) => onCreated(v.id) },
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Source</CardTitle>
+        {draft !== null ? (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDraft(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!draft.trim() || draft === source || save.isPending}
+              onClick={() => save.mutate(undefined)}
+            >
+              Save as new version
+            </Button>
+          </div>
+        ) : editable ? (
+          <Button variant="outline" size="sm" onClick={() => setDraft(source)}>
+            <Pencil /> Edit
+          </Button>
+        ) : null}
+      </CardHeader>
+      {draft !== null ? (
+        <div className="p-2">
+          <Textarea
+            aria-label="Source"
+            className="min-h-[60vh] font-mono text-xs"
+            spellCheck={false}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+        </div>
+      ) : (
+        <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words p-4 text-xs">{source}</pre>
+      )}
+    </Card>
   );
 }
 
