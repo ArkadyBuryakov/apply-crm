@@ -23,6 +23,7 @@ import {
   type PointerEvent,
   type ReactNode,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -210,9 +211,13 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
   const peeking = narrow && (hovered || notificationsOpen || accountOpen);
   const expanded = !rail || peeking;
 
-  // A tap on a touch screen never leaves the rail, so navigating closes it.
+  // A tap on a touch screen never leaves the rail, so navigating by touch closes it; a mouse keeps it open until it
+  // leaves.
+  const pointerType = useRef("mouse");
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs on navigation
-  useEffect(() => setHovered(false), [pathname]);
+  useEffect(() => {
+    if (pointerType.current !== "mouse") setHovered(false);
+  }, [pathname]);
 
   function toggle() {
     setCollapsed(!collapsed);
@@ -235,6 +240,9 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
     <aside
       aria-label="Project navigation"
       className={cn("sticky top-0 z-30 h-screen shrink-0", rail ? "w-14" : "w-56")}
+      onPointerDown={(e) => {
+        pointerType.current = e.pointerType;
+      }}
       onMouseOver={narrow ? () => setHovered(true) : undefined}
       onMouseLeave={narrow ? () => setHovered(false) : undefined}
       // Only keyboard focus expands it: the browser also refocuses the last clicked link when the window or tab
