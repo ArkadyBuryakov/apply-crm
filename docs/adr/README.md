@@ -19,7 +19,7 @@ Records are never edited after acceptance except to change status. To revise a d
 | 0012 | [Audit log, soft delete, optimistic concurrency](0012-audit-softdelete-concurrency.md) | Accepted |
 | 0013 | [Action subjects and participants](0013-action-subjects-and-participants.md) | Accepted |
 | 0014 | [Position stages and outcome](0014-position-stages-and-outcome.md) | Accepted |
-| 0015 | [Commenter role and comments](0015-commenter-role-and-comments.md) | Accepted, amends 0008 |
+| 0015 | [Commenter role and comments](0015-commenter-role-and-comments.md) | Accepted, amends 0008; amended by 0033 |
 | 0016 | [Notifications, search and integrations scope](0016-notifications-and-integrations-scope.md) | Accepted |
 | 0017 | [Import/export and personal data deletion](0017-import-export-and-data-deletion.md) | Accepted |
 | 0018 | [Composite endpoints and MCP surface](0018-composite-endpoints-and-mcp-surface.md) | Accepted |
@@ -37,5 +37,6 @@ Records are never edited after acceptance except to change status. To revise a d
 | 0030 | [Decisions made while implementing v1](0030-v1-implementation-decisions.md) | Accepted, amends 0006, 0007, 0010, 0011, 0012, 0027 |
 | 0031 | [In-app assistant](0031-in-app-assistant.md) | Accepted, refines 0015 |
 | 0032 | [Assistant memory](0032-assistant-memory.md) | Accepted |
+| 0033 | [Audit log is owner-only](0033-audit-log-owner-only.md) | Accepted, amends 0015 |
 
 Open questions live in `docs/questions/`.

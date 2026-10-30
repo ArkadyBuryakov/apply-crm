@@ -83,7 +83,7 @@ flowchart TD
 | viewer | ✓ | | | | |
 
 - Project = BetterAuth organization. Single ownership is enforced in our code, with an explicit ownership transfer. (0007)
-- Trust model: members see the **whole** project. There are no private records or hidden fields. (0015)
+- Trust model: members see the **whole** project. There are no private records or hidden fields. The audit log is the one exception: only the owner can read it. (0015, 0033)
 - Tenancy is filtered in the application (no RLS): every repository call requires a `projectId`. (0003)
 - The first user to sign up becomes instance admin. After that, sign-up is invite-only. Login is by email and password, plus optional Google or GitHub. (0021)
 

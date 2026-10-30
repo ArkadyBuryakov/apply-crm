@@ -1,6 +1,6 @@
 # 0015. Commenter role and comments
 
-- Status: Accepted (amends 0008)
+- Status: Accepted (amends 0008), trust model amended by 0033
 - Date: 2026-10-26
 - Source: round-2 Q4, Q5
 

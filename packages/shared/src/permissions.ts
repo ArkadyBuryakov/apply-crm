@@ -44,7 +44,6 @@ const readAll = {
   document: ["read"],
   template: ["read"],
   memory: ["read"],
-  audit: ["read"],
   ac: ["read"],
 } satisfies Grants;
 
@@ -71,6 +70,7 @@ const ownerGrants = {
   invitation: ["create", "cancel"],
   project: ["read", "update", "transfer"],
   membership: ["read", "manage"],
+  audit: ["read"],
   contact: [...crud, "purge"],
   comment: ["read", "create", "moderate"],
 } satisfies Grants;

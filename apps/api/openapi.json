@@ -12143,7 +12143,7 @@
       "get": {
         "operationId": "listAuditEvents",
         "summary": "Change history",
-        "description": "Who changed what and when, optionally for one entity. `via` tells web, API key and MCP changes apart.",
+        "description": "Who changed what and when, optionally for one entity. `via` tells web, API key and MCP changes apart. Owner only.",
         "tags": [
           "Audit"
         ],

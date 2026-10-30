@@ -208,7 +208,8 @@ const listAudit = defineRoute({
   path: "/api/projects/{projectId}/audit",
   operationId: "listAuditEvents",
   summary: "Change history",
-  description: "Who changed what and when, optionally for one entity. `via` tells web, API key and MCP changes apart.",
+  description:
+    "Who changed what and when, optionally for one entity. `via` tells web, API key and MCP changes apart. Owner only.",
   scope: "project",
   permissions: ["audit:read"],
   tags: ["Audit"],
