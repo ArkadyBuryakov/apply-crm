@@ -1,0 +1,12 @@
+% Second warm-up (ADR 0025): the default fonts of a document without fontspec or fontenc, such as the common resume classes.
+\documentclass[11pt]{article}
+\usepackage[parfill]{parskip}
+\usepackage{array,ifthen,tabularx,hyperref}
+\usepackage[margin=0.5in]{geometry}
+\newcommand{\faces}{Aa {\bfseries Aa} {\itshape Aa} {\bfseries\itshape Aa} {\scshape Aa} {\sffamily Aa {\bfseries Aa} {\itshape Aa}} {\ttfamily Aa} $1+x^{2}_{i}\sum\alpha\bullet\cdot\times\rightarrow\mathbf{A}\mathit{A}\mathrm{A}$ \textbullet}
+\begin{document}
+\href{https://example.org}{link}
+\begin{itemize}\item one\end{itemize}
+{\tiny\faces} {\scriptsize\faces} {\footnotesize\faces} {\small\faces} {\normalsize\faces}
+{\large\faces} {\Large\faces} {\LARGE\faces} {\huge\faces} {\Huge\faces}
+\end{document}

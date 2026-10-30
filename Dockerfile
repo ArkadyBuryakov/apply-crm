@@ -49,10 +49,10 @@ ENV NODE_ENV=production \
     COMPILE_TIMEOUT_MS=60000
 WORKDIR /app
 COPY --from=build --chown=node:node /out /app
-COPY docker/tectonic-warmup.tex /tmp/warmup/warmup.tex
+COPY docker/tectonic-warmup.tex docker/tectonic-warmup-plain.tex /tmp/warmup/
 RUN mkdir -p /var/cache/tectonic && chown node:node /var/cache/tectonic /tmp/warmup
 USER node
-RUN tectonic -X compile --untrusted --outdir /tmp/warmup /tmp/warmup/warmup.tex && rm -rf /tmp/warmup
+RUN for f in /tmp/warmup/*.tex; do tectonic -X compile --untrusted --outdir /tmp/warmup "$f" || exit 1; done && rm -rf /tmp/warmup
 # The worker writes this file once it is connected to the job queue. Coolify also requires a health check on every
 # target once the Dockerfile contains one.
 HEALTHCHECK --interval=30s --timeout=5s CMD test -f /tmp/worker-ready

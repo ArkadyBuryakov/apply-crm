@@ -3,8 +3,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[margin=0.5in]{geometry}
-\usepackage{tabularx,array,ifthen,parskip,enumitem,xcolor,titlesec,hyperref,fontspec,graphicx,multicol,setspace}
+\usepackage{tabularx,array,ifthen,parskip,enumitem,color,xcolor,titlesec,hyperref,fontspec,graphicx,multicol,setspace}
 \begin{document}
 Warm-up \textbf{bold} \textit{italic} \href{https://example.org}{link}.
 \begin{itemize}\item one\end{itemize}
+% Every size in the regular, bold, italic, small caps, sans and mono faces: fonts are cached per design size.
+\newcommand{\faces}{Aa {\bfseries Aa} {\itshape Aa} {\bfseries\itshape Aa} {\scshape Aa} {\sffamily Aa {\bfseries Aa} {\itshape Aa}} {\ttfamily Aa}}
+{\tiny\faces} {\scriptsize\faces} {\footnotesize\faces} {\small\faces} {\normalsize\faces}
+{\large\faces} {\Large\faces} {\LARGE\faces} {\huge\faces} {\Huge\faces}
 \end{document}
