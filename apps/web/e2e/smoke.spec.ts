@@ -31,15 +31,17 @@ test("first user sets up a project and logs an interaction", async ({ page }) =>
 
   await page.getByRole("button", { name: "Log or plan an action" }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Type").selectOption("application");
-  await dialog.getByLabel("Status").selectOption("done");
+  await dialog.getByRole("combobox", { name: "Type" }).click();
+  await page.getByRole("option", { name: "Application" }).click();
+  await dialog.getByRole("combobox", { name: "Status" }).click();
+  await page.getByRole("option", { name: "Done" }).click();
   await dialog.getByLabel("Title").fill("Applied on careers site");
   await dialog.getByRole("button", { name: "Save" }).click();
 
   // Logging a done application suggests moving the position to "Applied".
   await expect(page.getByText("Move position to “Applied”?")).toBeVisible();
   await page.getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByLabel("Stage")).toHaveValue(/.+/);
+  await expect(page.getByRole("combobox", { name: "Stage" })).toHaveText("Applied");
   await expect(page.getByText("Applied on careers site")).toBeVisible();
 
   await page.getByRole("tab", { name: "Graph" }).click();

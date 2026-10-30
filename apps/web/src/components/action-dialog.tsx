@@ -4,6 +4,7 @@ import { Plus, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DateInput, DateTimeInput } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { ACTION_META, defaultPayload, type FieldSpec, PAYLOAD_FIELDS, statusesFor } from "@/lib/actions";
@@ -161,10 +162,10 @@ export function ActionDialog({ projectId, open, onOpenChange, action, defaults, 
             />
           </Field>
           <Field label="When">
-            <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+            <DateTimeInput value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
           </Field>
           <Field label="Due">
-            <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+            <DateTimeInput value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
           </Field>
           <Field label="Channel">
             <Select value={channelId} onChange={(e) => setChannelId(e.target.value)}>
@@ -285,7 +286,7 @@ function PayloadField({ spec, value, onChange }: { spec: FieldSpec; value: unkno
     case "date":
       return (
         <Field label={spec.label}>
-          <Input type="date" value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))} />
+          <DateInput value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))} />
         </Field>
       );
     case "textarea":

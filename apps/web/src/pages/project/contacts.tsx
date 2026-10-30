@@ -7,6 +7,7 @@ import { Comments } from "@/components/comments";
 import { ContactDialog } from "@/components/entity-forms";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
@@ -279,10 +280,10 @@ function AffiliationDialog({
           <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
         <Field label="From">
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <DateInput value={from} onChange={(e) => setFrom(e.target.value)} />
         </Field>
         <Field label="To">
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateInput value={to} onChange={(e) => setTo(e.target.value)} />
         </Field>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <Button variant="outline" onClick={onClose}>

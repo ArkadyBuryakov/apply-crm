@@ -80,6 +80,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  accent-color: var(--primary);
 }
 
 /* React Flow follows the theme tokens. */

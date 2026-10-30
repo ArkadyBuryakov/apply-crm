@@ -6,7 +6,8 @@ import { ActionDialog } from "@/components/action-dialog";
 import { ActionItem } from "@/components/action-item";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input, Select } from "@/components/ui/form";
+import { DateInput } from "@/components/ui/date-picker";
+import { Select } from "@/components/ui/form";
 import { Loading, PageHeader } from "@/components/ui/misc";
 import { type Action, api, unwrap } from "@/lib/api";
 import { useCan, useMe, useMembers } from "@/lib/queries";
@@ -75,8 +76,20 @@ export function AgendaPage() {
               </option>
             ))}
         </Select>
-        <Input className="w-44" type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" />
-        <Input className="w-44" type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To" />
+        <DateInput
+          className="w-44"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          aria-label="From"
+          placeholder="From"
+        />
+        <DateInput
+          className="w-44"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          aria-label="To"
+          placeholder="To"
+        />
       </div>
       {agenda.isLoading ? <Loading /> : null}
       {agenda.data ? (

@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { ActionDialog } from "@/components/action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DateTimeInput } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input, Select, Textarea } from "@/components/ui/form";
+import { Field, Select, Textarea } from "@/components/ui/form";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { ACTION_META, actionSummary, STATUS_TONE } from "@/lib/actions";
 import { type Action, api, unwrap } from "@/lib/api";
@@ -186,10 +187,10 @@ function RescheduleDialog({ projectId, action, onClose }: { projectId: string; a
     >
       <div className="grid gap-3">
         <Field label="New time">
-          <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+          <DateTimeInput value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
         </Field>
         <Field label="New due date">
-          <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+          <DateTimeInput value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
         </Field>
         <Field label="Notes for the new one">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Keep the current notes" />

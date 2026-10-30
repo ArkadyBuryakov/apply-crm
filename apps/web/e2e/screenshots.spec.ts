@@ -118,7 +118,8 @@ test("capture", async ({ page }) => {
   await page.screenshot({ path: `${out}/graph.png`, fullPage: true });
   await page.getByRole("tab", { name: "Timeline" }).click();
   await page.getByRole("button", { name: "Log or plan an action" }).click();
-  await page.getByRole("dialog").getByLabel("Type").selectOption("offer");
+  await page.getByRole("dialog").getByRole("combobox", { name: "Type" }).click();
+  await page.getByRole("option", { name: "Offer" }).click();
   await page.screenshot({ path: `${out}/action-dialog.png`, fullPage: true });
   await page.keyboard.press("Escape");
   await page.goto(`/p/${project.id}/agenda`);
