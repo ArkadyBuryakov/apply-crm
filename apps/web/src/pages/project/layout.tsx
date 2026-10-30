@@ -237,7 +237,15 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
       className={cn("sticky top-0 z-30 h-screen shrink-0", rail ? "w-14" : "w-56")}
       onMouseOver={narrow ? () => setHovered(true) : undefined}
       onMouseLeave={narrow ? () => setHovered(false) : undefined}
-      onFocus={narrow ? () => setHovered(true) : undefined}
+      // Only keyboard focus expands it: the browser also refocuses the last clicked link when the window or tab
+      // regains focus, which must not open the rail.
+      onFocus={
+        narrow
+          ? (e) => {
+              if (e.target.matches(":focus-visible")) setHovered(true);
+            }
+          : undefined
+      }
       onBlur={
         narrow
           ? (e) => {
