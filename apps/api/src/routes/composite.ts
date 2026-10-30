@@ -110,7 +110,8 @@ const agendaRoute = defineRoute({
     "Planned actions by day in the caller's timezone. An action starts on its scheduled day and is due on its due " +
     "day; with only one of the two, both are that day. `overdue`: due before today. `today`: started and not yet " +
     "due before today. `upcoming`: starting after today, between `from` and `to` (inclusive dates; default: today " +
-    "and the next 6 days). Optionally only one assignee's actions.",
+    "and the next 6 days). `overdue` and `today` are sorted by due date, `upcoming` by start date. Optionally only " +
+    "one assignee's actions.",
   scope: "project",
   permissions: ["action:read"],
   mcp: { expose: true },
@@ -277,18 +278,21 @@ export function registerCompositeRoutes(app: OpenAPIHono<AppEnv>) {
     const to = q.to ?? addDays(from, 6);
     const assignee = q.assigneeId ? eq(action.assigneeId, uuidOf("user", q.assigneeId)) : undefined;
     const planned = and(visible(action, s), eq(action.status, "planned"), assignee);
-    const when = sql`coalesce(${action.scheduledAt}, ${action.dueAt})`;
-    const startDay = sql`(${when} at time zone ${tz})::date`;
-    const dueDay = sql`(coalesce(${action.dueAt}, ${action.scheduledAt}) at time zone ${tz})::date`;
+    const start = sql`coalesce(${action.scheduledAt}, ${action.dueAt})`;
+    const due = sql`coalesce(${action.dueAt}, ${action.scheduledAt})`;
+    const startDay = sql`(${start} at time zone ${tz})::date`;
+    const dueDay = sql`(${due} at time zone ${tz})::date`;
     const day = (d: string) => sql`${d}::date`;
-    const list = (where: SQL | undefined, limit: number) =>
-      s.db.select().from(action).where(and(planned, where)).orderBy(asc(when)).limit(limit);
+    const list = (where: SQL | undefined, orderBy: SQL, limit: number) =>
+      s.db.select().from(action).where(and(planned, where)).orderBy(asc(orderBy)).limit(limit);
 
+    // Overdue and today are sorted by when they are due; upcoming by when they start.
     const [overdueRows, todayRows, upcomingRows] = await Promise.all([
-      list(sql`${dueDay} < ${day(today)}`, 200),
-      list(and(sql`${startDay} <= ${day(today)}`, sql`${dueDay} >= ${day(today)}`), 200),
+      list(sql`${dueDay} < ${day(today)}`, due, 200),
+      list(and(sql`${startDay} <= ${day(today)}`, sql`${dueDay} >= ${day(today)}`), due, 200),
       list(
         and(sql`${startDay} > ${day(today)}`, sql`${startDay} >= ${day(from)}`, sql`${startDay} <= ${day(to)}`),
+        start,
         500,
       ),
     ]);

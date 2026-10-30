@@ -12380,7 +12380,7 @@
       "get": {
         "operationId": "getAgenda",
         "summary": "What is planned and overdue",
-        "description": "Planned actions by day in the caller's timezone. An action starts on its scheduled day and is due on its due day; with only one of the two, both are that day. `overdue`: due before today. `today`: started and not yet due before today. `upcoming`: starting after today, between `from` and `to` (inclusive dates; default: today and the next 6 days). Optionally only one assignee's actions.",
+        "description": "Planned actions by day in the caller's timezone. An action starts on its scheduled day and is due on its due day; with only one of the two, both are that day. `overdue`: due before today. `today`: started and not yet due before today. `upcoming`: starting after today, between `from` and `to` (inclusive dates; default: today and the next 6 days). `overdue` and `today` are sorted by due date, `upcoming` by start date. Optionally only one assignee's actions.",
         "tags": [
           "Composite"
         ],

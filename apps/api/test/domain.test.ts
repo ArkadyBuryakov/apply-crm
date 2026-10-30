@@ -299,11 +299,22 @@ describe("composite views", () => {
     expect(overview.body.timeline).toHaveLength(3);
     expect(overview.body.contacts.map((c: { name: string }) => c.name)).toEqual(["Peter Hiring"]);
 
+    // Started later but due sooner, so overdue and today list them first.
+    const task = (title: string, scheduledAt: string, dueAt: string) =>
+      owner.post(`${base()}/actions`, { type: "task", title, scheduledAt, dueAt, payload: {} });
+    await task("Long overdue", "2020-01-01T09:00:00.000Z", "2020-01-10T09:00:00.000Z");
+    await task("Overdue sooner", "2020-01-02T09:00:00.000Z", "2020-01-05T09:00:00.000Z");
+    await task(
+      "Due in a minute",
+      new Date(Date.now() - 3600 * 1000).toISOString(),
+      new Date(Date.now() + 60 * 1000).toISOString(),
+    );
+
     const agenda = await owner.get(`${base()}/agenda`);
     expect(agenda.status).toBe(200);
     const titles = (list: { title: string }[]) => list.map((a) => a.title);
-    expect(titles(agenda.body.overdue)).toEqual(["Send portfolio"]);
-    expect(titles(agenda.body.today)).toEqual(["Take-home exercise"]);
+    expect(titles(agenda.body.overdue)).toEqual(["Overdue sooner", "Long overdue", "Send portfolio"]);
+    expect(titles(agenda.body.today)).toEqual(["Due in a minute", "Take-home exercise"]);
     expect(titles(agenda.body.upcoming)).toEqual(["Hiring manager chat"]);
 
     const hits = await owner.get(`${base()}/search?q=initech`);
