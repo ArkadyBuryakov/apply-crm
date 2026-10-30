@@ -101,7 +101,7 @@ export function AgendaPage() {
               </CardHeader>
               <CardContent className="grid gap-0.5 p-2">
                 {agenda.data.overdue.map((a) => (
-                  <ActionItem key={a.id} projectId={projectId} action={a} compact />
+                  <ActionItem key={a.id} projectId={projectId} action={a} compact showDue />
                 ))}
               </CardContent>
             </Card>
@@ -115,7 +115,7 @@ export function AgendaPage() {
                 <p className="p-2 text-sm text-muted-foreground">Nothing for today.</p>
               ) : null}
               {agenda.data.today.map((a) => (
-                <ActionItem key={a.id} projectId={projectId} action={a} compact />
+                <ActionItem key={a.id} projectId={projectId} action={a} compact showDue />
               ))}
             </CardContent>
           </Card>
@@ -131,7 +131,7 @@ export function AgendaPage() {
                 <div key={day}>
                   <div className="px-2 text-xs font-medium text-muted-foreground">{day}</div>
                   {items.map((a) => (
-                    <ActionItem key={a.id} projectId={projectId} action={a} compact />
+                    <ActionItem key={a.id} projectId={projectId} action={a} compact showDue />
                   ))}
                 </div>
               ))}

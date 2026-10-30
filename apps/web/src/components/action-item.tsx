@@ -12,19 +12,22 @@ import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { ACTION_META, actionSummary, STATUS_TONE } from "@/lib/actions";
 import { type Action, api, unwrap } from "@/lib/api";
 import { useCan, useProjectMutation } from "@/lib/queries";
-import { cn, formatDateTime, fromLocalInput, humanize, toLocalInput } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, fromLocalInput, humanize, toLocalInput } from "@/lib/utils";
 
 export function ActionItem({
   projectId,
   action,
   candidates = [],
   compact,
+  showDue,
 }: {
   projectId: string;
   action: Action;
   /** Other actions this one can be linked to. */
   candidates?: Action[];
   compact?: boolean;
+  /** Highlight the due date when it falls on a different day than the start. */
+  showDue?: boolean;
 }) {
   const can = useCan(projectId);
   const [dialog, setDialog] = useState<"edit" | "follow" | "reschedule" | "link" | null>(null);
@@ -35,6 +38,8 @@ export function ActionItem({
     action.status === "planned" &&
     (action.dueAt ?? action.scheduledAt) &&
     new Date(action.dueAt ?? action.scheduledAt!) < new Date();
+  const dueLater =
+    showDue && action.scheduledAt && action.dueAt && formatDate(action.dueAt) !== formatDate(action.scheduledAt);
 
   const markDone = useProjectMutation(
     projectId,
@@ -81,6 +86,7 @@ export function ActionItem({
             <span>{humanize(actionSummary(action.type, action.payload))}</span>
           ) : null}
           {when ? <span>{formatDateTime(when)}</span> : null}
+          {dueLater ? <span className="font-medium text-warning">Due {formatDateTime(action.dueAt)}</span> : null}
           {action.participants.length ? (
             <span>with {action.participants.map((p) => p.contactName).join(", ")}</span>
           ) : null}
