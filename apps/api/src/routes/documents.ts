@@ -449,9 +449,12 @@ const deleteDocument = defineRoute({
   path: "/api/projects/{projectId}/documents/{documentId}",
   operationId: "deleteDocument",
   summary: "Delete a document",
-  description: "Soft-deletes a document; versions referenced by actions are kept.",
+  description:
+    "Soft-deletes a document; it can be restored, and versions referenced by actions are kept. `listDocuments` " +
+    "with `deleted=true` finds deleted documents.",
   scope: "project",
   permissions: ["document:delete"],
+  mcp: { expose: true },
   tags: ["Documents"],
   request: { params: DocumentParams, query: z.object({ version: z.coerce.number().int().optional() }) },
   responses: { 204: NoContent, ...errorResponses(403, 404, 412, 428) },
@@ -465,6 +468,7 @@ const restoreDocument = defineRoute({
   description: "Undoes a delete.",
   scope: "project",
   permissions: ["document:delete"],
+  mcp: { expose: true },
   tags: ["Documents"],
   request: { params: DocumentParams },
   responses: { 204: NoContent, ...errorResponses(403, 404) },
@@ -619,7 +623,7 @@ const listTemplates = defineRoute({
   permissions: ["template:read"],
   mcp: { expose: true },
   tags: ["Documents"],
-  request: { params: ProjectParams },
+  request: { params: ProjectParams, query: z.object({ deleted: z.enum(["true", "false"]).optional() }) },
   responses: { 200: jsonResponse(z.object({ items: z.array(TemplateSchema) }), "Templates"), ...errorResponses(404) },
 });
 
@@ -648,9 +652,11 @@ const deleteTemplate = defineRoute({
   operationId: "deleteTemplate",
   summary: "Delete a LaTeX template",
   description:
-    "Soft-deletes a template. New LaTeX versions no longer pick it up; versions pinned to it keep compiling with it.",
+    "Soft-deletes a template; it can be restored. New LaTeX versions no longer pick it up; versions pinned to it keep " +
+    "compiling with it. `listTemplates` with `deleted=true` finds deleted templates.",
   scope: "project",
   permissions: ["template:delete"],
+  mcp: { expose: true },
   tags: ["Documents"],
   request: { params: TemplateParams, query: z.object({ version: z.coerce.number().int().optional() }) },
   responses: { 204: NoContent, ...errorResponses(403, 404, 412, 428) },
@@ -664,6 +670,7 @@ const restoreTemplate = defineRoute({
   description: "Undoes a delete.",
   scope: "project",
   permissions: ["template:delete"],
+  mcp: { expose: true },
   tags: ["Documents"],
   request: { params: TemplateParams },
   responses: { 204: NoContent, ...errorResponses(403, 404) },
@@ -1028,7 +1035,11 @@ export function registerDocumentRoutes(app: OpenAPIHono<AppEnv>) {
     const rows = await s.db
       .select()
       .from(documentTemplate)
-      .where(visible(documentTemplate, s))
+      .where(
+        c.req.valid("query").deleted === "true"
+          ? and(eq(documentTemplate.projectId, s.projectId), isNotNull(documentTemplate.deletedAt))
+          : visible(documentTemplate, s),
+      )
       .orderBy(asc(documentTemplate.name));
     const items = [];
     for (const row of rows) items.push(await templateView(s.db, row));

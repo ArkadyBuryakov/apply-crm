@@ -87,8 +87,17 @@ describe("MCP server", () => {
     expect(names).not.toContain("deleteOrganization");
     expect(names).not.toContain("purgeContact");
     expect(names).not.toContain("transferOwnership");
-    // Soft deletes of actions are reversible, so they are exposed.
-    expect(names).toEqual(expect.arrayContaining(["deleteAction", "restoreAction"]));
+    // Soft deletes of actions, documents and templates are reversible, so they are exposed.
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "deleteAction",
+        "restoreAction",
+        "deleteDocument",
+        "restoreDocument",
+        "deleteTemplate",
+        "restoreTemplate",
+      ]),
+    );
 
     const create = ownerTools.find((t) => t.name === "createOrganization")!;
     expect(create.description).toContain("company");
@@ -103,6 +112,8 @@ describe("MCP server", () => {
     expect(viewerNames).toContain("getPositionOverview");
     expect(viewerNames).not.toContain("createOrganization");
     expect(viewerNames).not.toContain("createComment");
+    expect(viewerNames).not.toContain("deleteDocument");
+    expect(viewerNames).not.toContain("deleteTemplate");
 
     const coach = await addMember(app, owner, project.id, "coach@example.test", "commenter");
     const coachNames = (await (await connect({ "x-api-key": await apiKeyFor(coach) })).listTools()).tools.map(
@@ -167,6 +178,30 @@ describe("MCP server", () => {
       expect.objectContaining({ name: "resume.cls", size: 22 }),
       expect.objectContaining({ name: "logo.png", size: 4 }),
     ]);
+
+    // Deleted templates and documents can be found again and restored.
+    const templateIds = async (args: Record<string, unknown> = {}) =>
+      parse(await mcp.callTool({ name: "listTemplates", arguments: args })).items.map((t: { id: string }) => t.id);
+    const deleted = await mcp.callTool({
+      name: "deleteTemplate",
+      arguments: { templateId: template.id, version: template.version },
+    });
+    expect(deleted.isError).toBeFalsy();
+    expect(await templateIds()).not.toContain(template.id);
+    expect(await templateIds({ deleted: "true" })).toContain(template.id);
+    await mcp.callTool({ name: "restoreTemplate", arguments: { templateId: template.id } });
+    expect(await templateIds()).toContain(template.id);
+
+    const doc = parse(await mcp.callTool({ name: "createDocument", arguments: { kind: "other", title: "Scratch" } }));
+    const documentIds = async (args: Record<string, unknown> = {}) =>
+      parse(await mcp.callTool({ name: "listDocuments", arguments: args })).items.map((d: { id: string }) => d.id);
+    const staleDelete = await mcp.callTool({ name: "deleteDocument", arguments: { documentId: doc.id, version: 99 } });
+    expect(parse(staleDelete).error.code).toBe("precondition_failed");
+    await mcp.callTool({ name: "deleteDocument", arguments: { documentId: doc.id, version: doc.version } });
+    expect(await documentIds()).not.toContain(doc.id);
+    expect(await documentIds({ deleted: "true" })).toContain(doc.id);
+    await mcp.callTool({ name: "restoreDocument", arguments: { documentId: doc.id } });
+    expect(await documentIds()).toContain(doc.id);
 
     // Changes made through MCP are attributed as such in the audit log.
     const audit = await owner.get(`/api/projects/${project.id}/audit?entityId=${org.id}`);

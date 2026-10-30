@@ -13264,7 +13264,7 @@
       "delete": {
         "operationId": "deleteDocument",
         "summary": "Delete a document",
-        "description": "Soft-deletes a document; versions referenced by actions are kept.",
+        "description": "Soft-deletes a document; it can be restored, and versions referenced by actions are kept. `listDocuments` with `deleted=true` finds deleted documents.",
         "tags": [
           "Documents"
         ],
@@ -13272,6 +13272,9 @@
         "x-permissions": [
           "document:delete"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
@@ -13396,6 +13399,9 @@
         "x-permissions": [
           "document:delete"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
@@ -14343,6 +14349,18 @@
             "description": "project ID",
             "name": "projectId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "deleted",
+            "in": "query"
           }
         ],
         "responses": {
@@ -14520,7 +14538,7 @@
       "delete": {
         "operationId": "deleteTemplate",
         "summary": "Delete a LaTeX template",
-        "description": "Soft-deletes a template. New LaTeX versions no longer pick it up; versions pinned to it keep compiling with it.",
+        "description": "Soft-deletes a template; it can be restored. New LaTeX versions no longer pick it up; versions pinned to it keep compiling with it. `listTemplates` with `deleted=true` finds deleted templates.",
         "tags": [
           "Documents"
         ],
@@ -14528,6 +14546,9 @@
         "x-permissions": [
           "template:delete"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
@@ -14652,6 +14673,9 @@
         "x-permissions": [
           "template:delete"
         ],
+        "x-mcp": {
+          "expose": true
+        },
         "security": [
           {
             "session": []
