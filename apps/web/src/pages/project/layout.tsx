@@ -302,8 +302,10 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
                     {expanded ? <span className="truncate">{item.label}</span> : null}
                   </Link>
                 ))}
-                <ThemeMenu expanded={expanded} />
               </nav>
+              <div className="mt-auto grid pt-3">
+                <ThemeMenu expanded={expanded} />
+              </div>
             </div>
             <div className="shrink-0 border-t border-border p-3">
               <UserMenu expanded={expanded} role={role} />
