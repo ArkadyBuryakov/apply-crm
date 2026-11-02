@@ -360,9 +360,6 @@ export function DocumentDetailPage() {
       unwrap(
         api.GET("/api/projects/{projectId}/documents/{documentId}", { params: { path: { projectId, documentId } } }),
       ),
-    // Keep polling while a compile is in progress.
-    refetchInterval: (q) =>
-      q.state.data?.versions.some((v) => v.compileStatus === "queued" || v.compileStatus === "running") ? 2000 : false,
   });
   const versionId = selected ?? doc.data?.versions[0]?.id ?? null;
   const version = useQuery({

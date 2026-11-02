@@ -251,3 +251,33 @@ test("documents page deletes documents and templates after confirming", async ({
   await expect(page.getByText("Template deleted")).toBeVisible();
   await expect(page.getByText("Old class")).toBeHidden();
 });
+
+test("changes made outside the page show up without a reload", async ({ page }) => {
+  const { request } = page.context();
+  const headers = { origin: "http://localhost:3100" };
+  await request.post("/api/auth/sign-in/email", {
+    data: { email: "ada@example.test", password: "correct horse battery" },
+    headers,
+  });
+  const project = await (await request.post("/api/projects", { data: { name: "Live" }, headers })).json();
+  const base = `/api/projects/${project.id}`;
+
+  await page.goto(`/p/${project.id}/organizations`);
+  await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible();
+  const events = page.waitForResponse((res) => res.url().endsWith(`${base}/events`));
+  await page.reload();
+  await events;
+
+  // As an API script or agent would: the page has no idea this request happened.
+  const org = await (
+    await request.post(`${base}/organizations`, { data: { kind: "company", name: "Live Corp" }, headers })
+  ).json();
+  await expect(page.getByText("Live Corp")).toBeVisible();
+
+  await request.patch(`${base}/organizations/${org.id}`, {
+    data: { name: "Renamed Corp", version: org.version },
+    headers,
+  });
+  await expect(page.getByText("Renamed Corp")).toBeVisible();
+  await expect(page.getByText("Live Corp")).toBeHidden();
+});

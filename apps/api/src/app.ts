@@ -9,12 +9,14 @@ import type { AppEnv, Deps } from "./http/types.js";
 import { lazyToolCatalog, registerMcp } from "./mcp/server.js";
 import { registerAssistantRoutes } from "./routes/assistant.js";
 import { registerApiRoutes } from "./routes/index.js";
+import { ChangeHub } from "./services/changes.js";
 import type { Services } from "./services/index.js";
 
 // BetterAuth endpoints that are not reachable over HTTP: projects and memberships change only through our API.
 const BLOCKED_AUTH_PATHS = [/^\/api\/auth\/organization\//, /^\/api\/auth\/admin\//];
 
-export function createApi(deps: { db: Db; auth: Auth; env: Env; services: Services }) {
+export function createApi(base: { db: Db; auth: Auth; env: Env; services: Services }) {
+  const deps: Deps = { ...base, changes: new ChangeHub(base.db) };
   const app = new OpenAPIHono<AppEnv>({
     defaultHook: (result, c) => {
       if (!result.success) {
@@ -31,7 +33,7 @@ export function createApi(deps: { db: Db; auth: Auth; env: Env; services: Servic
   });
 
   app.use("*", async (c, next) => {
-    c.set("deps", deps as Deps);
+    c.set("deps", deps);
     await next();
   });
 
@@ -63,7 +65,7 @@ export function createApi(deps: { db: Db; auth: Auth; env: Env; services: Servic
   });
 
   app.doc31("/api/openapi.json", openApiInfo(deps.env.PUBLIC_URL));
-  registerMcp(app, deps as Deps, tools);
+  registerMcp(app, deps, tools);
 
   return app;
 }

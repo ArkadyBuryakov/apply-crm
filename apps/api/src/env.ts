@@ -26,6 +26,7 @@ const EnvSchema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   WEB_DIST_DIR: optional,
+  CHANGE_STREAM_MAX_AGE_MS: z.coerce.number().int().positive().default(300_000),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

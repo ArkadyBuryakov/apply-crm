@@ -5,6 +5,7 @@ import { and, eq, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { ApiError, badRequest, notFound } from "../http/errors.js";
 import type { Actor } from "../http/types.js";
+import { type ChangeEntity, recordChange } from "./changes.js";
 
 export type Scope = {
   db: Db;
@@ -17,7 +18,7 @@ export type AuditOp = "create" | "update" | "delete" | "restore" | "purge" | "li
 export async function audit(
   tx: Tx,
   scope: Scope,
-  entry: { entityType: string; entityId: string; op: AuditOp; diff?: unknown },
+  entry: { entityType: ChangeEntity; entityId: string; op: AuditOp; diff?: unknown },
 ): Promise<void> {
   await tx.insert(auditEvent).values({
     id: newUuid(),
@@ -28,6 +29,12 @@ export async function audit(
     entityId: entry.entityId,
     op: entry.op,
     diff: entry.diff ?? null,
+  });
+  recordChange({
+    projectId: scope.projectId,
+    entityType: entry.entityType,
+    entityId: entry.entityId,
+    operationType: entry.op,
   });
 }
 
@@ -89,7 +96,7 @@ export async function softDelete<T extends VersionedTable>(
   tx: Tx,
   table: T,
   scope: Scope,
-  args: { id: string; expectedVersion: number; entityName: string; entityType: string },
+  args: { id: string; expectedVersion: number; entityName: string; entityType: ChangeEntity },
 ): Promise<void> {
   const { before } = await updateVersioned(tx, table, scope, {
     id: args.id,
@@ -104,7 +111,7 @@ export async function restore<T extends VersionedTable>(
   tx: Tx,
   table: T,
   scope: Scope,
-  args: { id: string; entityName: string; entityType: string },
+  args: { id: string; entityName: string; entityType: ChangeEntity },
 ): Promise<void> {
   const rows = await tx
     .update(table)

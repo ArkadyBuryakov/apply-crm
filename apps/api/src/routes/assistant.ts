@@ -175,6 +175,7 @@ const createChat = defineRoute({
   method: "post",
   path: "/api/projects/{projectId}/chats",
   operationId: "createChat",
+  changes: false,
   summary: "Start a chat",
   description: "Creates an empty chat; send messages to it with sendChatMessage.",
   scope: "project",
@@ -213,6 +214,7 @@ const updateChat = defineRoute({
   method: "patch",
   path: "/api/projects/{projectId}/chats/{chatId}",
   operationId: "updateChat",
+  changes: false,
   summary: "Rename a chat or change its model, approval mode or web search",
   description: "Changes apply from the next message on.",
   scope: "project",
@@ -236,6 +238,7 @@ const deleteChat = defineRoute({
   method: "delete",
   path: "/api/projects/{projectId}/chats/{chatId}",
   operationId: "deleteChat",
+  changes: false,
   summary: "Delete a chat",
   description: "Deletes the chat, its messages and its attachments permanently.",
   scope: "project",
@@ -249,6 +252,7 @@ const sendMessage = defineRoute({
   method: "post",
   path: "/api/projects/{projectId}/chats/{chatId}/messages",
   operationId: "sendChatMessage",
+  changes: false,
   summary: "Send a message and stream the assistant's reply",
   description:
     "Send only the newest message: a new user message, or the latest assistant message again after answering an " +
@@ -279,6 +283,7 @@ const uploadAttachment = defineRoute({
   method: "post",
   path: "/api/projects/{projectId}/chats/{chatId}/attachments",
   operationId: "uploadChatAttachment",
+  changes: false,
   summary: "Attach a file to a chat",
   description:
     `Images (PNG, JPEG, WebP, GIF), PDFs and text files (Markdown, LaTeX, CSV, JSON, …) up to ` +

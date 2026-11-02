@@ -21,7 +21,8 @@ type Operation = {
   pathParams: { name: string; pattern?: string }[];
 };
 
-const FIXTURE_BREAKING = ["deleteProject", "transferOwnership", "leaveProject"];
+// The event stream stays open until closed, so reading its response would never finish; see changes.test.ts.
+const FIXTURE_BREAKING = ["deleteProject", "transferOwnership", "leaveProject", "streamProjectEvents"];
 
 let app: TestApp;
 let projectId: string;

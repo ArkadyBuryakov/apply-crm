@@ -40,6 +40,7 @@ import { api, unwrap } from "@/lib/api";
 import { panelOpen, panelWidth } from "@/lib/assistant-prefs";
 import { authClient } from "@/lib/auth";
 import { clearLastProject, setLastProject } from "@/lib/last-project";
+import { useLiveUpdates } from "@/lib/live-updates";
 import { useProject, useProjectMutation } from "@/lib/queries";
 import { sidebarCollapsed } from "@/lib/sidebar-prefs";
 import { setTheme, useTheme } from "@/lib/theme";
@@ -65,6 +66,7 @@ export function ProjectLayout() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(panelOpen.get);
+  useLiveUpdates(projectId);
 
   function toggleAssistant(open = !assistantOpen) {
     setAssistantOpen(open);
@@ -396,7 +398,6 @@ function Notifications({ projectId }: { projectId: string }) {
       unwrap(
         api.GET("/api/projects/{projectId}/notifications", { params: { path: { projectId }, query: { limit: 20 } } }),
       ),
-    refetchInterval: 60_000,
   });
   const markRead = useProjectMutation(projectId, (ids?: string[]) =>
     unwrap(

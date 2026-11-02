@@ -3,6 +3,7 @@
 import { action, type Db, notification, projectMember, user } from "@crm/db";
 import { newUuid } from "@crm/shared";
 import { and, count, eq, isNull, notExists, sql } from "drizzle-orm";
+import { publishChanges } from "./changes.js";
 
 const DIGEST_HOUR = 8;
 
@@ -62,6 +63,11 @@ export async function runAgendaDigest(db: Db, now = new Date()): Promise<number>
       message: `You have ${d.tasks} new ${d.tasks === 1 ? "task" : "tasks"} today`,
       createdAt: now,
     })),
+  );
+  const projectIds = [...new Set(due.map((d) => d.projectId))];
+  await publishChanges(
+    db,
+    projectIds.map((projectId) => ({ projectId, entityType: "notification", entityId: null, operationType: "create" })),
   );
   return due.length;
 }

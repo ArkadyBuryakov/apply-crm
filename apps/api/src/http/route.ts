@@ -4,6 +4,8 @@
 import { fromPublicId, ID_PREFIXES, type IdKind, type Permission, publicIdPattern, roleHas } from "@crm/shared";
 import { createRoute, type RouteConfig, z } from "@hono/zod-openapi";
 import { createMiddleware } from "hono/factory";
+import { type Change, collectChanges, publishChanges } from "../services/changes.js";
+import type { AuditOp } from "../services/core.js";
 import { ApiError, badRequest } from "./errors.js";
 import type { AppEnv } from "./types.js";
 
@@ -26,10 +28,12 @@ type RouteDefinition = RouteConfig & {
   scope: RouteScope;
   permissions: readonly Permission[];
   mcp?: McpConfig;
+  /** Set to false on writes other members must not hear about (ADR 0034); everything else announces its changes. */
+  changes?: false;
 };
 
 export function defineRoute<const R extends RouteDefinition>(definition: R) {
-  const { scope, permissions, mcp, ...config } = definition;
+  const { scope, permissions, mcp, changes, ...config } = definition;
   if (scope === "project" && !config.path.startsWith("/api/projects/{projectId}")) {
     throw new Error(`${config.operationId}: project-scoped routes must live under /api/projects/{projectId}`);
   }
@@ -41,12 +45,15 @@ export function defineRoute<const R extends RouteDefinition>(definition: R) {
     "x-scope": scope,
     "x-permissions": permissions,
     ...(mcp ? { "x-mcp": mcp } : {}),
+    ...(changes === false ? { "x-changes": false } : {}),
     ...(scope === "public" ? {} : { security: [{ session: [] }, { apiKey: [] }] }),
-    middleware: [guard(scope, permissions)] as const,
-  } as Omit<R, "scope" | "permissions" | "mcp">);
+    middleware: [guard(scope, permissions, changes !== false)] as const,
+  } as Omit<R, "scope" | "permissions" | "mcp" | "changes">);
 }
 
-function guard(scope: RouteScope, permissions: readonly Permission[]) {
+const WRITE_OPS: Record<string, AuditOp> = { POST: "create", PUT: "update", PATCH: "update", DELETE: "delete" };
+
+function guard(scope: RouteScope, permissions: readonly Permission[], announcesChanges: boolean) {
   return createMiddleware<AppEnv>(async (c, next) => {
     if (scope === "public") return next();
     const actor = c.get("actor");
@@ -59,7 +66,18 @@ function guard(scope: RouteScope, permissions: readonly Permission[]) {
         throw new ApiError(403, `Your role (${project.role}) lacks ${permissions.join(", ")}`);
       }
     }
-    return next();
+    const operationType = WRITE_OPS[c.req.method];
+    if (!operationType || !announcesChanges || (scope !== "project" && scope !== "user")) return next();
+
+    const changes: Change[] = [];
+    await collectChanges(changes, next);
+    if (c.res.status >= 400) return;
+    // Audited writes say exactly what they touched; anything else still has to reach the frontend.
+    if (changes.length === 0) {
+      const owner = scope === "project" ? { projectId: c.var.project.id } : { userId: actor.userId };
+      changes.push({ ...owner, entityType: "other", entityId: null, operationType });
+    }
+    await publishChanges(c.var.deps.db, changes);
   });
 }
 

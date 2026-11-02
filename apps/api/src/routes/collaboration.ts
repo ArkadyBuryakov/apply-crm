@@ -194,6 +194,7 @@ const markNotificationsRead = defineRoute({
   method: "post",
   path: "/api/projects/{projectId}/notifications/read",
   operationId: "markNotificationsRead",
+  changes: false,
   summary: "Mark notifications as read",
   description: "Marks the given notifications, or all of them when `ids` is omitted.",
   scope: "project",

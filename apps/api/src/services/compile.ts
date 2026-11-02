@@ -6,6 +6,7 @@ import path from "node:path";
 import { type Db, documentTemplateVersion, documentVersion } from "@crm/db";
 import { and, eq } from "drizzle-orm";
 import { type BlobStore, blobKeys } from "./blobs.js";
+import { publishChanges } from "./changes.js";
 import type { CompileDocumentJob } from "./jobs.js";
 
 const MAX_LOG_CHARS = 20_000;
@@ -80,7 +81,12 @@ export async function runCompileJob(
     .where(and(eq(documentVersion.projectId, job.projectId), eq(documentVersion.id, job.documentVersionId)));
   if (!version || version.source === null) return "skipped";
 
+  const announce = () =>
+    publishChanges(db, [
+      { projectId: job.projectId, entityType: "document", entityId: version.documentId, operationType: "update" },
+    ]);
   await db.update(documentVersion).set({ compileStatus: "running" }).where(eq(documentVersion.id, version.id));
+  await announce();
   const dir = await mkdtemp(path.join(tmpdir(), "crm-compile-"));
   try {
     if (version.templateVersionId) {
@@ -126,5 +132,6 @@ export async function runCompileJob(
     return "failed";
   } finally {
     await rm(dir, { recursive: true, force: true });
+    await announce();
   }
 }

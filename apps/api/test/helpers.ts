@@ -11,7 +11,7 @@ import { withDatabase } from "./global-setup.js";
 export const PUBLIC_URL = "http://localhost:3000";
 
 /** A fresh database cloned from the migrated template, plus an API instance wired to in-memory infrastructure. */
-export async function createTestApp() {
+export async function createTestApp(envOverrides: Record<string, string> = {}) {
   const baseUrl = inject("databaseUrl");
   const name = `t_${Math.random().toString(36).slice(2, 10)}`;
   const admin = createDb(baseUrl, { max: 1 });
@@ -23,6 +23,7 @@ export async function createTestApp() {
     DATABASE_URL: withDatabase(baseUrl, name),
     BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-123",
     PUBLIC_URL,
+    ...envOverrides,
   });
   const { db, client } = createDb(env.DATABASE_URL, { max: 5 });
   const auth = createAuth(db, env);

@@ -12059,6 +12059,7 @@
         "x-permissions": [
           "project:read"
         ],
+        "x-changes": false,
         "security": [
           {
             "session": []
@@ -16168,6 +16169,84 @@
         }
       }
     },
+    "/api/projects/{projectId}/events": {
+      "get": {
+        "operationId": "streamProjectEvents",
+        "summary": "Stream changes to this project",
+        "description": "Server-sent events, one `{ projectId | userId, entityType, entityId, operationType }` per change. They carry no data: refetch what you show. The server closes the stream every few minutes and on membership changes; reconnect and refetch.",
+        "tags": [
+          "Events"
+        ],
+        "x-scope": "project",
+        "x-permissions": [
+          "project:read"
+        ],
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^prj_[0-9A-HJKMNP-TV-Z]{26}$",
+              "example": "prj_01JBX3V6Q9W2G8K4M7N5P0R1S2",
+              "description": "project ID"
+            },
+            "required": true,
+            "description": "project ID",
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/ai/providers": {
       "get": {
         "operationId": "listAiProviders",
@@ -16478,6 +16557,7 @@
         "x-permissions": [
           "project:read"
         ],
+        "x-changes": false,
         "security": [
           {
             "session": []
@@ -16658,6 +16738,7 @@
         "x-permissions": [
           "project:read"
         ],
+        "x-changes": false,
         "security": [
           {
             "session": []
@@ -16773,6 +16854,7 @@
         "x-permissions": [
           "project:read"
         ],
+        "x-changes": false,
         "security": [
           {
             "session": []
@@ -16856,6 +16938,7 @@
         "x-permissions": [
           "project:read"
         ],
+        "x-changes": false,
         "security": [
           {
             "session": []
@@ -16995,6 +17078,7 @@
         "x-permissions": [
           "project:read"
         ],
+        "x-changes": false,
         "security": [
           {
             "session": []

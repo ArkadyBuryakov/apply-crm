@@ -2,6 +2,7 @@ import type { Db } from "@crm/db";
 import type { AuditVia, ProjectRole } from "@crm/shared";
 import type { Auth } from "../auth.js";
 import type { Env } from "../env.js";
+import type { ChangeHub } from "../services/changes.js";
 import type { Services } from "../services/index.js";
 
 export type Actor = {
@@ -24,6 +25,7 @@ export type Deps = {
   auth: Auth;
   env: Env;
   services: Services;
+  changes: ChangeHub;
 };
 
 /** Passed as Hono `env` by the MCP server when it calls the API in-process on behalf of a verified user. */
