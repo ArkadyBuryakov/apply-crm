@@ -208,6 +208,24 @@ describe("positions and actions", () => {
     const bad = await owner.patch(`${base()}/actions/${id}`, { payload: { priority: "urgent" }, version: 2 });
     expect(bad.status).toBe(422);
   });
+
+  it("hides completedAt while an action is planned again", async () => {
+    const created = await owner.post(`${base()}/actions`, { type: "task", title: "Chase redline", payload: {} });
+    const id = created.body.action.id;
+    const done = await owner.patch(`${base()}/actions/${id}`, { status: "done", version: 1 });
+    expect(done.body.action.completedAt).not.toBeNull();
+    const reopened = await owner.patch(`${base()}/actions/${id}`, {
+      status: "planned",
+      scheduledAt: "2030-02-01T09:00:00.000Z",
+      version: 2,
+    });
+    expect(reopened.body.action.completedAt).toBeNull();
+    expect((await owner.get(`${base()}/actions/${id}`)).body.completedAt).toBeNull();
+
+    const before = Date.now();
+    const doneAgain = await owner.patch(`${base()}/actions/${id}`, { status: "done", version: 3 });
+    expect(new Date(doneAgain.body.action.completedAt).getTime()).toBeGreaterThanOrEqual(before - 1000);
+  });
 });
 
 describe("graph", () => {

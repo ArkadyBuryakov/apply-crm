@@ -238,8 +238,8 @@ export async function updateAction(
   if (input.status !== undefined) {
     checkStatus(type, input.status);
     set.status = input.status;
-    if (input.status === "done" && !current.completedAt && input.completedAt === undefined)
-      set.completedAt = new Date();
+    const hasCompletedAt = current.completedAt && current.status !== "planned";
+    if (input.status === "done" && !hasCompletedAt && input.completedAt === undefined) set.completedAt = new Date();
   }
   if (input.scheduledAt !== undefined) set.scheduledAt = toDate(input.scheduledAt);
   if (input.completedAt !== undefined) set.completedAt = toDate(input.completedAt);
@@ -426,7 +426,8 @@ export function actionView(
     title: r.title,
     notes: r.notes,
     scheduledAt: isoOrNull(r.scheduledAt),
-    completedAt: isoOrNull(r.completedAt),
+    // A planned action has not happened yet; a completedAt left over from an earlier status means nothing.
+    completedAt: r.status === "planned" ? null : isoOrNull(r.completedAt),
     dueAt: isoOrNull(r.dueAt),
     channelId: pidOrNull("channel", r.channelId),
     assigneeId: pidOrNull("user", r.assigneeId),

@@ -214,7 +214,11 @@ export function registerCompositeRoutes(app: OpenAPIHono<AppEnv>) {
       .select()
       .from(action)
       .where(and(visible(action, s), aboutPosition(positionId)))
-      .orderBy(desc(sql`coalesce(${action.completedAt}, ${action.scheduledAt}, ${action.dueAt}, ${action.createdAt})`))
+      .orderBy(
+        desc(
+          sql`coalesce(case when ${action.status} <> 'planned' then ${action.completedAt} end, ${action.scheduledAt}, ${action.dueAt}, ${action.createdAt})`,
+        ),
+      )
       .limit(TIMELINE_LIMIT);
     const timelineIds = timelineRows.map((r) => r.id);
 

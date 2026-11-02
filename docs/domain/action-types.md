@@ -17,7 +17,7 @@ Contacts never appear in payloads: they are `action_participant` rows (ADR 0013)
 | `title` | string | short label for timelines, e.g. "Intro call with recruiter" |
 | `notes?` | markdown | free text |
 | `scheduled_at?` | timestamp | when it is or was supposed to happen |
-| `completed_at?` | timestamp | set when the status becomes `done` |
+| `completed_at?` | timestamp | set when the status becomes `done`; read as null while the status is `planned`, so a value left from an earlier status is ignored |
 | `due_at?` | timestamp | deadline (tasks, take-homes, offer decisions) |
 | `channel_id?` | id | where it happened (LinkedIn, email, phone, …) |
 | `assignee_id?` | user id | defaults to the creator (ADR 0016) |

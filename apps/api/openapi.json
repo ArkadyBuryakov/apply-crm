@@ -1157,7 +1157,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -1342,7 +1342,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -1496,7 +1496,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -1673,7 +1673,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -1813,7 +1813,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -1953,7 +1953,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -2169,7 +2169,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -2299,7 +2299,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -2438,7 +2438,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -2583,7 +2583,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [
@@ -2697,7 +2697,7 @@
             ],
             "format": "date-time",
             "example": "2026-10-26T14:00:00.000Z",
-            "description": "Set automatically when status becomes done"
+            "description": "Set automatically when status becomes done; always null while the action is planned"
           },
           "dueAt": {
             "type": [

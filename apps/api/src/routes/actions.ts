@@ -74,7 +74,9 @@ const CommonActionInput = z.object({
     description: "Defaults to planned, or done for offer/rejection/note",
   }),
   scheduledAt: isoDateTime.openapi({ description: "When it happens or happened" }),
-  completedAt: isoDateTime.openapi({ description: "Set automatically when status becomes done" }),
+  completedAt: isoDateTime.openapi({
+    description: "Set automatically when status becomes done; always null while the action is planned",
+  }),
   dueAt: isoDateTime.openapi({ description: "Deadline (tasks, take-homes, offer decisions)" }),
   channelId: publicId("channel").nullable().optional(),
   assigneeId: publicId("user").nullable().optional().openapi({ description: "Project member; defaults to you" }),
