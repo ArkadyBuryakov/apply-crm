@@ -1,16 +1,28 @@
 import { ACTION_TYPES, type ActionStatus, type ActionType, PARTICIPANT_ROLES, type ParticipantRole } from "@crm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Plus, X } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateInput, DateTimeInput } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
-import { ACTION_META, defaultPayload, type FieldSpec, PAYLOAD_FIELDS, statusesFor } from "@/lib/actions";
+import {
+  Empty,
+  InlineField,
+  InlineSelect,
+  InlineText,
+  type SaveState,
+  useDraft,
+  useInlineSave,
+} from "@/components/ui/inline-field";
+import { ACTION_META, defaultPayload, type FieldSpec, PAYLOAD_FIELDS, STATUS_TONE, statusesFor } from "@/lib/actions";
 import { type Action, api, type Schemas, type Suggestion, unwrap } from "@/lib/api";
 import {
   invalidateProject,
+  useCan,
   useChannels,
   useContacts,
   useMembers,
@@ -18,7 +30,7 @@ import {
   usePositions,
   useProjectMutation,
 } from "@/lib/queries";
-import { fromLocalInput, humanize, toLocalInput } from "@/lib/utils";
+import { formatDate, formatDateTime, formatMoney, fromLocalInput, humanize, toLocalInput } from "@/lib/utils";
 
 type Subject = { positionId?: string; organizationId?: string };
 type Participant = { contactId: string; role: ParticipantRole };
@@ -27,31 +39,36 @@ export type ActionDialogProps = {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Edit this action; otherwise create a new one. */
+  /** Show this action, its fields editable one by one; otherwise create a new one. */
   action?: Action;
   defaults?: { type?: ActionType; subjects?: Subject[]; participants?: Participant[]; title?: string };
   /** Link the new action to this one (previous → new) via logInteraction. */
   previousAction?: Pick<Action, "id" | "title">;
 };
 
-export function ActionDialog({ projectId, open, onOpenChange, action, defaults, previousAction }: ActionDialogProps) {
+export function ActionDialog({ action, ...props }: ActionDialogProps) {
+  return action ? (
+    <ActionDetails projectId={props.projectId} open={props.open} onOpenChange={props.onOpenChange} action={action} />
+  ) : (
+    <ActionForm {...props} />
+  );
+}
+
+function ActionForm({ projectId, open, onOpenChange, defaults, previousAction }: Omit<ActionDialogProps, "action">) {
   const qc = useQueryClient();
-  const [type, setType] = useState<ActionType>(action?.type ?? defaults?.type ?? "meeting");
-  const [title, setTitle] = useState(action?.title ?? defaults?.title ?? "");
-  const [status, setStatus] = useState<ActionStatus>(action?.status ?? statusesFor(type)[0]!);
-  const [notes, setNotes] = useState(action?.notes ?? "");
-  const [scheduledAt, setScheduledAt] = useState(toLocalInput(action?.scheduledAt));
-  const [dueAt, setDueAt] = useState(toLocalInput(action?.dueAt));
-  const [channelId, setChannelId] = useState(action?.channelId ?? "");
-  const [assigneeId, setAssigneeId] = useState(action?.assigneeId ?? "");
-  const [payload, setPayload] = useState<Record<string, unknown>>(action?.payload ?? defaultPayload(type));
-  const [subjects, setSubjects] = useState<Subject[]>(
-    (action?.subjects as Subject[] | undefined) ?? defaults?.subjects ?? [],
-  );
-  const [participants, setParticipants] = useState<Participant[]>(
-    action?.participants.map((p) => ({ contactId: p.contactId, role: p.role })) ?? defaults?.participants ?? [],
-  );
-  const [attachments, setAttachments] = useState<string[]>(action?.attachments ?? []);
+  const formId = useId();
+  const [type, setType] = useState<ActionType>(defaults?.type ?? "meeting");
+  const [title, setTitle] = useState(defaults?.title ?? "");
+  const [status, setStatus] = useState<ActionStatus>(statusesFor(type)[0]!);
+  const [notes, setNotes] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [dueAt, setDueAt] = useState("");
+  const [channelId, setChannelId] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [payload, setPayload] = useState<Record<string, unknown>>(defaultPayload(type));
+  const [subjects, setSubjects] = useState<Subject[]>(defaults?.subjects ?? []);
+  const [participants, setParticipants] = useState<Participant[]>(defaults?.participants ?? []);
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [linkPrevious, setLinkPrevious] = useState(Boolean(previousAction));
 
   function changeType(next: ActionType) {
@@ -67,7 +84,8 @@ export function ActionDialog({ projectId, open, onOpenChange, action, defaults, 
   const save = useProjectMutation(
     projectId,
     async () => {
-      const common = {
+      const body = {
+        type,
         title,
         status,
         notes: notes || null,
@@ -78,17 +96,8 @@ export function ActionDialog({ projectId, open, onOpenChange, action, defaults, 
         subjects,
         participants,
         attachments,
-      };
-      if (action) {
-        const res = await unwrap(
-          api.PATCH("/api/projects/{projectId}/actions/{actionId}", {
-            params: { path: { projectId, actionId: action.id } },
-            body: { ...common, payload, version: action.version },
-          }),
-        );
-        return res.suggestions;
-      }
-      const body = { ...common, type, payload } as Schemas["CreateAction"];
+        payload,
+      } as Schemas["CreateAction"];
       if (previousAction && linkPrevious) {
         const res = await unwrap(
           api.POST("/api/projects/{projectId}/log-interaction", {
@@ -105,7 +114,7 @@ export function ActionDialog({ projectId, open, onOpenChange, action, defaults, 
       return res.suggestions;
     },
     {
-      success: action ? "Action updated" : "Action saved",
+      success: "Action saved",
       onSuccess: (suggestions) => {
         onOpenChange(false);
         for (const s of suggestions) offerSuggestion(projectId, s, () => invalidateProject(qc, projectId));
@@ -126,24 +135,32 @@ export function ActionDialog({ projectId, open, onOpenChange, action, defaults, 
       title={
         <span className="flex items-center gap-2">
           <Icon className="size-4" />
-          {action ? `Edit ${ACTION_META[type].label.toLowerCase()}` : "Log or plan an action"}
+          Log or plan an action
         </span>
       }
       className="w-[min(760px,calc(100vw-2rem))]"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form={formId} disabled={save.isPending}>
+            {save.isPending ? "Saving…" : "Save"}
+          </Button>
+        </>
+      }
     >
-      <form onSubmit={submit} className="grid gap-4">
+      <form id={formId} onSubmit={submit} className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          {!action ? (
-            <Field label="Type">
-              <Select value={type} onChange={(e) => changeType(e.target.value as ActionType)}>
-                {ACTION_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {ACTION_META[t].label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : null}
+          <Field label="Type">
+            <Select value={type} onChange={(e) => changeType(e.target.value as ActionType)}>
+              {ACTION_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {ACTION_META[t].label}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Status">
             <Select value={status} onChange={(e) => setStatus(e.target.value as ActionStatus)}>
               {statusesFor(type).map((s) => (
@@ -205,30 +222,315 @@ export function ActionDialog({ projectId, open, onOpenChange, action, defaults, 
           </fieldset>
         ) : null}
 
-        <SubjectsEditor projectId={projectId} value={subjects} onChange={setSubjects} />
-        <ParticipantsEditor projectId={projectId} value={participants} onChange={setParticipants} />
-        <AttachmentsEditor projectId={projectId} value={attachments} onChange={setAttachments} />
+        <div className="grid gap-2">
+          <span className="text-sm font-medium">About</span>
+          <SubjectsEditor projectId={projectId} value={subjects} onChange={setSubjects} />
+        </div>
+        <div className="grid gap-2">
+          <span className="text-sm font-medium">People</span>
+          <ParticipantsEditor projectId={projectId} value={participants} onChange={setParticipants} />
+        </div>
+        <AttachmentsSection projectId={projectId} value={attachments} onChange={setAttachments} />
 
         <Field label="Notes">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
-        {previousAction && !action ? (
+        {previousAction ? (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={linkPrevious} onChange={(e) => setLinkPrevious(e.target.checked)} />
             Follows up on “{previousAction.title}”
           </label>
         ) : null}
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={save.isPending}>
-            {save.isPending ? "Saving…" : "Save"}
-          </Button>
-        </div>
       </form>
+    </Dialog>
+  );
+}
+
+function ActionDetails({
+  projectId,
+  open,
+  onOpenChange,
+  action,
+}: {
+  projectId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  action: Action;
+}) {
+  const qc = useQueryClient();
+  const can = useCan(projectId);
+  const canEdit = can("action:update");
+  const channels = useChannels(projectId);
+  const members = useMembers(projectId);
+  const contacts = useContacts(projectId);
+  const positions = usePositions(projectId);
+  const orgs = useOrganizations(projectId);
+  const {
+    current: a,
+    save,
+    stateOf,
+  } = useInlineSave(projectId, action, async (body: Omit<Schemas["UpdateAction"], "version">, version) => {
+    const res = await unwrap(
+      api.PATCH("/api/projects/{projectId}/actions/{actionId}", {
+        params: { path: { projectId, actionId: action.id } },
+        body: { ...body, version },
+      }),
+    );
+    for (const s of res.suggestions) offerSuggestion(projectId, s, () => invalidateProject(qc, projectId));
+    return res.action;
+  });
+  const docVersions = useDocumentVersions(projectId, a.attachments.length > 0);
+  const close = () => onOpenChange(false);
+  const meta = ACTION_META[a.type];
+  const Icon = meta.icon;
+  const link = "text-primary hover:underline";
+
+  const subjects = a.subjects as Subject[];
+  const setSubjects = (v: Subject[]) =>
+    save("subjects", { subjects: v as Action["subjects"] }, { subjects: v as Action["subjects"] });
+  const setParticipants = (v: Participant[]) =>
+    save(
+      "participants",
+      { participants: v },
+      {
+        participants: v.map((p) => ({
+          ...p,
+          contactName: contacts.data?.find((c) => c.id === p.contactId)?.name ?? "",
+        })),
+      },
+    );
+  const setPayload = (key: string, v: unknown) =>
+    save(`payload.${key}`, { payload: { [key]: v ?? null } }, { payload: { ...a.payload, [key]: v } });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={
+        <span className="flex items-center gap-2 text-muted-foreground">
+          <Icon className="size-4" />
+          {meta.label}
+        </span>
+      }
+      className="w-[min(760px,calc(100vw-2rem))]"
+    >
+      <div className="grid gap-4">
+        <InlineText
+          label="Title"
+          value={a.title}
+          required
+          canEdit={canEdit}
+          state={stateOf("title")}
+          onSave={(title) => save("title", { title }, { title })}
+          view={<span className="text-base font-semibold">{a.title}</span>}
+        />
+        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+          <InlineSelect
+            label="Status"
+            value={a.status}
+            canEdit={canEdit}
+            state={stateOf("status")}
+            onSave={(v) => save("status", { status: v as ActionStatus }, { status: v as ActionStatus })}
+            view={<Badge tone={STATUS_TONE[a.status]}>{humanize(a.status)}</Badge>}
+          >
+            {statusesFor(a.type).map((s) => (
+              <option key={s} value={s}>
+                {humanize(s)}
+              </option>
+            ))}
+          </InlineSelect>
+          <InlineSelect
+            label="Assignee"
+            value={a.assigneeId ?? ""}
+            canEdit={canEdit}
+            state={stateOf("assigneeId")}
+            onSave={(v) => save("assigneeId", { assigneeId: v || null }, { assigneeId: v || null })}
+          >
+            <option value="">Me</option>
+            {members.data?.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.name}
+              </option>
+            ))}
+          </InlineSelect>
+          <InlineDateTime
+            label="When"
+            value={a.scheduledAt}
+            canEdit={canEdit}
+            state={stateOf("scheduledAt")}
+            onSave={(scheduledAt) => save("scheduledAt", { scheduledAt }, { scheduledAt })}
+          />
+          <InlineDateTime
+            label="Due"
+            value={a.dueAt}
+            canEdit={canEdit}
+            state={stateOf("dueAt")}
+            onSave={(dueAt) => save("dueAt", { dueAt }, { dueAt })}
+          />
+          <InlineSelect
+            label="Channel"
+            value={a.channelId ?? ""}
+            canEdit={canEdit}
+            state={stateOf("channelId")}
+            onSave={(v) => save("channelId", { channelId: v || null }, { channelId: v || null })}
+          >
+            <option value="">—</option>
+            {channels.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </InlineSelect>
+          {a.completedAt && a.status !== "planned" ? (
+            <InlineField label="Completed" canEdit={false} view={formatDateTime(a.completedAt)} editor={null} />
+          ) : null}
+        </div>
+
+        {PAYLOAD_FIELDS[a.type].length ? (
+          <fieldset className="grid gap-x-4 gap-y-3 rounded-md border border-border p-3 sm:grid-cols-2">
+            <legend className="px-1 text-xs font-medium text-muted-foreground">{meta.label} details</legend>
+            {PAYLOAD_FIELDS[a.type].map((f) => (
+              <InlinePayload
+                key={f.key}
+                spec={f}
+                value={a.payload[f.key]}
+                canEdit={canEdit}
+                state={stateOf(`payload.${f.key}`)}
+                onSave={(v) => setPayload(f.key, v)}
+              />
+            ))}
+          </fieldset>
+        ) : null}
+
+        <InlineField
+          label="About"
+          canEdit={canEdit}
+          state={stateOf("subjects")}
+          view={
+            subjects.length ? (
+              <span className="flex flex-wrap gap-x-3 gap-y-1">
+                {subjects.map((s) => {
+                  if (s.positionId) {
+                    const p = positions.data?.find((x) => x.id === s.positionId);
+                    return (
+                      <Link
+                        key={s.positionId}
+                        to="/p/$projectId/positions/$positionId"
+                        params={{ projectId, positionId: s.positionId }}
+                        className={link}
+                        onClick={close}
+                      >
+                        {p ? `${p.title}${p.company ? ` — ${p.company.name}` : ""}` : "Position"}
+                      </Link>
+                    );
+                  }
+                  const o = orgs.data?.find((x) => x.id === s.organizationId);
+                  return (
+                    <Link
+                      key={s.organizationId}
+                      to="/p/$projectId/organizations/$organizationId"
+                      params={{ projectId, organizationId: s.organizationId! }}
+                      className={link}
+                      onClick={close}
+                    >
+                      {o?.name ?? "Organization"}
+                    </Link>
+                  );
+                })}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Nothing specific (project-level)</span>
+            )
+          }
+          editor={<SubjectsEditor projectId={projectId} value={subjects} onChange={setSubjects} />}
+        />
+
+        <InlineField
+          label="People"
+          canEdit={canEdit}
+          state={stateOf("participants")}
+          view={
+            a.participants.length ? (
+              <span className="flex flex-wrap gap-x-3 gap-y-1">
+                {a.participants.map((p) => (
+                  <span key={`${p.contactId}:${p.role}`}>
+                    <Link
+                      to="/p/$projectId/contacts/$contactId"
+                      params={{ projectId, contactId: p.contactId }}
+                      className={link}
+                      onClick={close}
+                    >
+                      {p.contactName || contacts.data?.find((c) => c.id === p.contactId)?.name || "Contact"}
+                    </Link>{" "}
+                    <span className="text-xs text-muted-foreground">{humanize(p.role)}</span>
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <Empty />
+            )
+          }
+          editor={
+            <ParticipantsEditor
+              projectId={projectId}
+              value={a.participants.map((p) => ({ contactId: p.contactId, role: p.role }))}
+              onChange={setParticipants}
+            />
+          }
+        />
+
+        <InlineField
+          label="Documents sent or received"
+          canEdit={canEdit}
+          state={stateOf("attachments")}
+          view={
+            a.attachments.length ? (
+              <span className="grid gap-1">
+                {a.attachments.map((id) => {
+                  const v = docVersions.all.find((x) => x.id === id);
+                  return v ? (
+                    <Link
+                      key={id}
+                      to="/p/$projectId/documents/$documentId"
+                      params={{ projectId, documentId: v.documentId }}
+                      className={link}
+                      onClick={close}
+                    >
+                      {v.label}
+                    </Link>
+                  ) : (
+                    <span key={id}>{id}</span>
+                  );
+                })}
+              </span>
+            ) : (
+              <Empty />
+            )
+          }
+          editor={
+            <AttachmentsEditor
+              versions={docVersions}
+              value={a.attachments}
+              onChange={(attachments) => save("attachments", { attachments }, { attachments })}
+            />
+          }
+        />
+
+        <InlineText
+          label="Notes"
+          multiline
+          value={a.notes ?? ""}
+          canEdit={canEdit}
+          state={stateOf("notes")}
+          onSave={(v) => save("notes", { notes: v || null }, { notes: v || null })}
+        />
+
+        <p className="text-xs text-muted-foreground">
+          Created {formatDateTime(a.createdAt)}
+          {a.updatedAt !== a.createdAt ? ` · updated ${formatDateTime(a.updatedAt)}` : ""}
+        </p>
+      </div>
     </Dialog>
   );
 }
@@ -268,99 +570,217 @@ export function offerSuggestion(projectId: string, s: Suggestion, refresh: () =>
   });
 }
 
+function InlineDateTime({
+  label,
+  value,
+  onSave,
+  ...props
+}: {
+  label: string;
+  value: string | null;
+  onSave: (v: string | null) => void;
+  canEdit?: boolean;
+  state?: SaveState;
+}) {
+  return (
+    <InlineField
+      label={label}
+      {...props}
+      view={value ? formatDateTime(value) : <Empty />}
+      editor={
+        <DateTimeInput
+          value={toLocalInput(value)}
+          onChange={(e) => e.target.value !== toLocalInput(value) && onSave(fromLocalInput(e.target.value))}
+        />
+      }
+    />
+  );
+}
+
+const isWide = (spec: FieldSpec) => spec.kind === "textarea" || spec.kind === "money" || spec.kind === "checklist";
+
+type Money = { amount?: number; currency?: string; period?: string };
+type ChecklistItem = { text: string; done: boolean };
+
+function payloadView(spec: FieldSpec, value: unknown): ReactNode {
+  if (value === undefined || value === null || value === "") return <Empty />;
+  switch (spec.kind) {
+    case "url":
+      return (
+        <a href={String(value)} target="_blank" rel="noreferrer" className="break-all text-primary hover:underline">
+          {String(value)}
+        </a>
+      );
+    case "textarea":
+      return <p className="whitespace-pre-wrap">{String(value)}</p>;
+    case "date":
+      return formatDate(`${value}T00:00`);
+    case "select":
+      return humanize(String(value));
+    case "money": {
+      const m = value as Money;
+      if (m.amount === undefined) return <Empty />;
+      return `${formatMoney(m.amount, m.currency)}${spec.withPeriod && m.period ? ` / ${m.period}` : ""}`;
+    }
+    default:
+      return String(value);
+  }
+}
+
+/** A payload field shown read-first; typed values save once typing pauses, picks save right away. */
+function InlinePayload({
+  spec,
+  value,
+  onSave,
+  canEdit,
+  state,
+}: {
+  spec: FieldSpec;
+  value: unknown;
+  onSave: (v: unknown) => void;
+  canEdit: boolean;
+  state: SaveState;
+}) {
+  const draft = useDraft(value, onSave);
+  const immediate = spec.kind === "select" || spec.kind === "date";
+  const items = spec.kind === "checklist" ? ((value as ChecklistItem[] | undefined) ?? []) : [];
+  // Checklist items can be ticked off without opening the editor.
+  const checklistView = items.length ? (
+    <ul className="grid gap-1">
+      {items.map((item, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: checklist rows have no identity
+        <li key={i} className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={item.done}
+            disabled={!canEdit}
+            aria-label={item.text}
+            onChange={(e) => onSave(items.map((x, j) => (j === i ? { ...x, done: e.target.checked } : x)))}
+          />
+          <span className={item.done ? "text-muted-foreground line-through" : undefined}>{item.text}</span>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <Empty />
+  );
+  return (
+    <InlineField
+      label={spec.label}
+      canEdit={canEdit}
+      state={state}
+      className={isWide(spec) ? "sm:col-span-2" : undefined}
+      onEdit={draft.start}
+      onDone={draft.flush}
+      onBlur={draft.flush}
+      view={spec.kind === "checklist" ? checklistView : payloadView(spec, value)}
+      editor={
+        <PayloadInput
+          spec={spec}
+          value={draft.draft}
+          onChange={(v) => {
+            draft.change(v);
+            if (immediate) draft.flush();
+          }}
+        />
+      }
+    />
+  );
+}
+
 function PayloadField({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onChange: (v: unknown) => void }) {
+  if (spec.kind === "checklist") {
+    return (
+      <div className="grid gap-2 sm:col-span-2">
+        <span className="text-sm font-medium">{spec.label}</span>
+        <PayloadInput spec={spec} value={value} onChange={onChange} />
+      </div>
+    );
+  }
+  return (
+    <Field label={spec.label} className={isWide(spec) ? "sm:col-span-2" : undefined}>
+      <PayloadInput spec={spec} value={value} onChange={onChange} />
+    </Field>
+  );
+}
+
+/** The control(s) for one payload field, without a label. */
+function PayloadInput({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onChange: (v: unknown) => void }) {
   const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
   const orUndefined = (v: string) => (v === "" ? undefined : v);
   switch (spec.kind) {
     case "text":
     case "url":
       return (
-        <Field label={spec.label}>
-          <Input
-            type={spec.kind === "url" ? "url" : "text"}
-            value={str(value)}
-            onChange={(e) => onChange(orUndefined(e.target.value))}
-          />
-        </Field>
+        <Input
+          type={spec.kind === "url" ? "url" : "text"}
+          value={str(value)}
+          onChange={(e) => onChange(orUndefined(e.target.value))}
+        />
       );
     case "date":
-      return (
-        <Field label={spec.label}>
-          <DateInput value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))} />
-        </Field>
-      );
+      return <DateInput value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))} />;
     case "textarea":
-      return (
-        <Field label={spec.label} className="sm:col-span-2">
-          <Textarea value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))} />
-        </Field>
-      );
+      return <Textarea value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))} />;
     case "number":
       return (
-        <Field label={spec.label}>
-          <Input
-            type="number"
-            step={spec.step ?? 1}
-            min={spec.min}
-            max={spec.max}
-            value={str(value)}
-            onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-          />
-        </Field>
+        <Input
+          type="number"
+          step={spec.step ?? 1}
+          min={spec.min}
+          max={spec.max}
+          value={str(value)}
+          onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+        />
       );
     case "select":
       return (
-        <Field label={spec.label}>
-          <Select value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))}>
-            {!spec.required ? <option value="">—</option> : null}
-            {spec.options.map((o) => (
-              <option key={o} value={o}>
-                {humanize(o)}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <Select value={str(value)} onChange={(e) => onChange(orUndefined(e.target.value))}>
+          {!spec.required ? <option value="">—</option> : null}
+          {spec.options.map((o) => (
+            <option key={o} value={o}>
+              {humanize(o)}
+            </option>
+          ))}
+        </Select>
       );
     case "money": {
-      const money = (value ?? {}) as { amount?: number; currency?: string; period?: string };
-      const set = (patch: Partial<typeof money>) => {
+      const money = (value ?? {}) as Money;
+      const set = (patch: Partial<Money>) => {
         const next = { ...money, ...patch };
         onChange(next.amount === undefined && !spec.required ? undefined : next);
       };
       return (
-        <Field label={spec.label} className="sm:col-span-2">
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              min={0}
-              required={spec.required}
-              placeholder="Amount"
-              value={money.amount ?? ""}
-              onChange={(e) => set({ amount: e.target.value === "" ? undefined : Number(e.target.value) })}
-            />
-            <Input
-              className="w-24"
-              maxLength={3}
-              placeholder="EUR"
-              value={money.currency ?? ""}
-              onChange={(e) => set({ currency: e.target.value.toUpperCase() })}
-            />
-            {spec.withPeriod ? (
-              <Select className="w-32" value={money.period ?? "year"} onChange={(e) => set({ period: e.target.value })}>
-                <option value="year">per year</option>
-                <option value="month">per month</option>
-                <option value="hour">per hour</option>
-              </Select>
-            ) : null}
-          </div>
-        </Field>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            min={0}
+            required={spec.required}
+            placeholder="Amount"
+            value={money.amount ?? ""}
+            onChange={(e) => set({ amount: e.target.value === "" ? undefined : Number(e.target.value) })}
+          />
+          <Input
+            className="w-24"
+            maxLength={3}
+            placeholder="EUR"
+            value={money.currency ?? ""}
+            onChange={(e) => set({ currency: e.target.value.toUpperCase() })}
+          />
+          {spec.withPeriod ? (
+            <Select className="w-32" value={money.period ?? "year"} onChange={(e) => set({ period: e.target.value })}>
+              <option value="year">per year</option>
+              <option value="month">per month</option>
+              <option value="hour">per hour</option>
+            </Select>
+          ) : null}
+        </div>
       );
     }
     case "checklist": {
-      const items = (value as { text: string; done: boolean }[] | undefined) ?? [];
+      const items = (value as ChecklistItem[] | undefined) ?? [];
       return (
-        <div className="grid gap-2 sm:col-span-2">
-          <span className="text-sm font-medium">{spec.label}</span>
+        <div className="grid gap-2">
           {items.map((item, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: checklist rows have no identity
             <div key={i} className="flex items-center gap-2">
@@ -430,7 +850,6 @@ function SubjectsEditor({
       : (orgs.data?.find((o) => o.id === s.organizationId)?.name ?? "Organization");
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-medium">About</span>
       <div className="flex flex-wrap gap-1.5">
         {value.length === 0 ? (
           <span className="text-xs text-muted-foreground">Nothing specific (project-level)</span>
@@ -492,7 +911,6 @@ function ParticipantsEditor({
   const name = (id: string) => contacts.data?.find((c) => c.id === id)?.name ?? "Contact";
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-medium">People</span>
       <div className="flex flex-wrap gap-1.5">
         {value.map((p) => (
           <Chip
@@ -528,25 +946,19 @@ function ParticipantsEditor({
   );
 }
 
-function AttachmentsEditor({
-  projectId,
-  value,
-  onChange,
-}: {
-  projectId: string;
-  value: string[];
-  onChange: (v: string[]) => void;
-}) {
+type DocVersion = { id: string; documentId: string; label: string };
+
+/** Versions that can be attached, and (when needed) those of deleted documents, which attachments keep. */
+function useDocumentVersions(projectId: string, withDeleted: boolean) {
   const docs = useQuery({
     queryKey: ["documents", projectId, {}],
     queryFn: async () =>
       (await unwrap(api.GET("/api/projects/{projectId}/documents", { params: { path: { projectId }, query: {} } })))
         .items,
   });
-  // Attachments stay on the action after their document is deleted, so they still need a name.
   const deletedDocs = useQuery({
     queryKey: ["documents", projectId, { deleted: "true" }],
-    enabled: value.length > 0,
+    enabled: withDeleted,
     queryFn: async () =>
       (
         await unwrap(
@@ -556,23 +968,52 @@ function AttachmentsEditor({
         )
       ).items,
   });
-  const versions =
+  const available: DocVersion[] =
     docs.data?.flatMap((d) =>
-      d.versions.map((v) => ({ id: v.id, label: `${d.title} · v${v.versionNo} (${v.filename})` })),
+      d.versions.map((v) => ({ id: v.id, documentId: d.id, label: `${d.title} · v${v.versionNo} (${v.filename})` })),
     ) ?? [];
-  const deletedVersions =
+  const deleted: DocVersion[] =
     deletedDocs.data?.flatMap((d) =>
-      d.versions.map((v) => ({ id: v.id, label: `${d.title} · v${v.versionNo} (deleted)` })),
+      d.versions.map((v) => ({ id: v.id, documentId: d.id, label: `${d.title} · v${v.versionNo} (deleted)` })),
     ) ?? [];
-  if (versions.length === 0 && value.length === 0) return null;
+  return { available, all: [...available, ...deleted] };
+}
+
+function AttachmentsSection({
+  projectId,
+  value,
+  onChange,
+}: {
+  projectId: string;
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const versions = useDocumentVersions(projectId, value.length > 0);
+  if (versions.available.length === 0 && value.length === 0) return null;
   return (
     <div className="grid gap-2">
       <span className="text-sm font-medium">Documents sent or received</span>
+      <AttachmentsEditor versions={versions} value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+function AttachmentsEditor({
+  versions,
+  value,
+  onChange,
+}: {
+  versions: ReturnType<typeof useDocumentVersions>;
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  return (
+    <div className="grid gap-2">
       <div className="flex flex-wrap gap-1.5">
         {value.map((id) => (
           <Chip
             key={id}
-            label={[...versions, ...deletedVersions].find((v) => v.id === id)?.label ?? id}
+            label={versions.all.find((v) => v.id === id)?.label ?? id}
             onRemove={() => onChange(value.filter((x) => x !== id))}
           />
         ))}
@@ -583,7 +1024,7 @@ function AttachmentsEditor({
         aria-label="Attach document version"
       >
         <option value="">+ Document version…</option>
-        {versions
+        {versions.available
           .filter((v) => !value.includes(v.id))
           .map((v) => (
             <option key={v.id} value={v.id}>

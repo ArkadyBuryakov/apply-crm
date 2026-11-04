@@ -122,6 +122,14 @@ test("capture", async ({ page }) => {
   await page.getByRole("option", { name: "Offer" }).click();
   await page.screenshot({ path: `${out}/action-dialog.png`, fullPage: true });
   await page.keyboard.press("Escape");
+  await page.locator("main button.text-left.font-medium").first().click();
+  await page.getByRole("dialog").getByText("Notes").hover();
+  await page.screenshot({ path: `${out}/action-details.png`, fullPage: true });
+  await page.getByRole("dialog").getByRole("button", { name: "Edit notes" }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("Ask about the on-call rotation");
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${out}/action-details-saving.png`, fullPage: true });
+  await page.keyboard.press("Escape");
   await page.goto(`/p/${project.id}/agenda`);
   await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
   await page.screenshot({ path: `${out}/agenda.png`, fullPage: true });

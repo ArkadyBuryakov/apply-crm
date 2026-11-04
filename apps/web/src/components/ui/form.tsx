@@ -22,7 +22,7 @@ type ElementProps = { value?: string | number; label?: string; disabled?: boolea
 const EMPTY = "\u0000";
 
 /** The <option> and <optgroup> children of a Select, read the way a native select would. */
-function readOptions(children: ReactNode) {
+export function readOptions(children: ReactNode) {
   const groups: OptionGroup[] = [];
   let current: OptionGroup = { options: [] };
   groups.push(current);

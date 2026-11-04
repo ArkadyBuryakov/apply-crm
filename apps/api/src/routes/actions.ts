@@ -122,10 +122,10 @@ export const CreateActionSchema = z
 
 const UpdateActionSchema = CommonActionInput.partial()
   .extend({
-    payload: z
-      .record(z.string(), z.unknown())
-      .optional()
-      .openapi({ description: "Fields to change in the type-specific payload; merged into the current payload" }),
+    payload: z.record(z.string(), z.unknown()).optional().openapi({
+      description:
+        "Fields to change in the type-specific payload; merged into the current payload, null removes a field",
+    }),
     version: VersionField.optional(),
   })
   .openapi("UpdateAction");

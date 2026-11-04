@@ -207,6 +207,9 @@ describe("positions and actions", () => {
     expect(patched.body.action.payload).toEqual({ priority: "low", checklist: [{ text: "skills", done: false }] });
     const bad = await owner.patch(`${base()}/actions/${id}`, { payload: { priority: "urgent" }, version: 2 });
     expect(bad.status).toBe(422);
+    const cleared = await owner.patch(`${base()}/actions/${id}`, { payload: { checklist: null }, version: 2 });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.action.payload).toEqual({ priority: "low" });
   });
 
   it("hides completedAt while an action is planned again", async () => {

@@ -92,3 +92,41 @@ body {
   --xy-controls-button-color: var(--foreground);
   --xy-controls-button-border-color: var(--border);
 }
+
+/* Inline-edited fields (components/ui/inline-field.tsx): a spinning gradient border while saving, green once saved. */
+@property --inline-field-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes inline-field-spin {
+  to {
+    --inline-field-angle: 360deg;
+  }
+}
+
+.inline-field {
+  border: 1.5px solid transparent;
+  transition:
+    border-color 0.6s ease,
+    background-color 0.6s ease;
+}
+
+.inline-field-saving {
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from var(--inline-field-angle), var(--primary), transparent 35%, var(--ring) 65%, var(--primary))
+    border-box;
+  animation: inline-field-spin 1s linear infinite;
+}
+
+.inline-field-saved {
+  border-color: var(--success);
+  background-color: color-mix(in srgb, var(--success) 8%, transparent);
+  transition: none;
+}
+
+.inline-field-error {
+  border-color: var(--destructive);
+}

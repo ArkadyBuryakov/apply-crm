@@ -9,6 +9,7 @@ export function Dialog({
   title,
   description,
   children,
+  footer,
   className,
 }: {
   open: boolean;
@@ -16,6 +17,8 @@ export function Dialog({
   title: ReactNode;
   description?: ReactNode;
   children: ReactNode;
+  /** Stays in view below the scrolling body, e.g. for the submit buttons. */
+  footer?: ReactNode;
   className?: string;
 }) {
   return (
@@ -24,11 +27,11 @@ export function Dialog({
         <D.Overlay className="fixed inset-0 z-40 bg-black/40" />
         <D.Content
           className={cn(
-            "fixed left-1/2 top-[8vh] z-50 max-h-[84vh] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl focus:outline-none",
+            "fixed left-1/2 top-[8vh] z-50 flex max-h-[84vh] w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 flex-col rounded-lg border border-border bg-card p-5 shadow-xl focus:outline-none",
             className,
           )}
         >
-          <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
             <div>
               <D.Title className="text-base font-semibold">{title}</D.Title>
               {description ? (
@@ -41,7 +44,12 @@ export function Dialog({
               <X className="size-4" />
             </D.Close>
           </div>
-          {children}
+          <div className="-mx-5 -my-1 min-h-0 overflow-y-auto px-5 py-1">{children}</div>
+          {footer ? (
+            <div className="-mx-5 -mb-5 mt-4 flex shrink-0 justify-end gap-2 border-t border-border px-5 py-3">
+              {footer}
+            </div>
+          ) : null}
         </D.Content>
       </D.Portal>
     </D.Root>

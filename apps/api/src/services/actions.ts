@@ -250,7 +250,10 @@ export async function updateAction(
   }
   if (input.assigneeId !== undefined) set.assigneeId = await resolveAssignee(tx, s, input.assigneeId);
   if (input.payload !== undefined) {
-    set.payload = parsePayload(type, { ...(current.payload as Record<string, unknown>), ...input.payload });
+    const merged = { ...(current.payload as Record<string, unknown>), ...input.payload };
+    // A null clears the field: payload schemas only know present or absent.
+    for (const [key, value] of Object.entries(input.payload)) if (value === null) delete merged[key];
+    set.payload = parsePayload(type, merged);
   }
   const { before, after } = await updateVersioned<typeof action, ActionRow>(tx, action, s, {
     id,

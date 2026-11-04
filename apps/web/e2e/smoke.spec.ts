@@ -44,6 +44,19 @@ test("first user sets up a project and logs an interaction", async ({ page }) =>
   await expect(page.getByRole("combobox", { name: "Stage" })).toHaveText("Applied");
   await expect(page.getByText("Applied on careers site")).toBeVisible();
 
+  // An opened action is read-first: its references are links, and each field is edited and saved on its own.
+  await page.getByRole("button", { name: "Applied on careers site" }).click();
+  const details = page.getByRole("dialog");
+  await expect(details.getByRole("link", { name: "Staff engineer — Acme" })).toBeVisible();
+  await expect(details.getByRole("textbox")).toHaveCount(0);
+  await details.getByRole("button", { name: "Edit notes" }).click();
+  await details.getByRole("textbox").fill("Referred by a former colleague");
+  await details.getByRole("button", { name: "Done" }).click();
+  await expect(details.getByText("Referred by a former colleague")).toBeVisible();
+  await expect(details.locator(".inline-field-saved")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Referred by a former colleague")).toBeVisible();
+
   await page.getByRole("tab", { name: "Graph" }).click();
   await expect(page.locator(".react-flow__node")).toHaveCount(1);
 

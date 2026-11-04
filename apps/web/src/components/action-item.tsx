@@ -1,5 +1,5 @@
 import { canReschedule, EDGE_KINDS, type EdgeKind } from "@crm/shared";
-import { CalendarClock, Check, CornerDownRight, Link2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { CalendarClock, Check, CornerDownRight, Eye, Link2, MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ActionDialog } from "@/components/action-dialog";
@@ -110,7 +110,7 @@ export function ActionItem({
             }
           >
             <MenuItem onSelect={() => setDialog("edit")}>
-              <Pencil /> Edit
+              <Eye /> Open
             </MenuItem>
             {can("action:create", "edge:create") ? (
               <MenuItem onSelect={() => setDialog("follow")}>
