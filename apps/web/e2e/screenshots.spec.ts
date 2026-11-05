@@ -146,5 +146,7 @@ test("capture", async ({ page }) => {
     await page.goto(`/p/${project.id}/positions/${staff.id}`);
     await page.getByRole("tab", { name: "Documents (0)" }).click();
     await shot("position-tabs");
+    await page.getByRole("navigation", { name: "Tabs" }).getByRole("button", { name: "Assistant" }).click();
+    await shot("assistant");
   }
 });

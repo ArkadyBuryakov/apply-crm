@@ -68,7 +68,8 @@ export function ActionItem({
       <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-muted">
         <Icon className="size-3.5" />
       </div>
-      <div className="min-w-0 flex-1">
+      {/* Sized by the row, not the title: a long title would otherwise widen every list it is in. */}
+      <div className="min-w-0 flex-1 contain-inline-size">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"

@@ -20,6 +20,13 @@ async function setUp(page: Page) {
     companyId: acme.id,
     stageId: stage("applied"),
   });
+  await post(`${p}/actions`, {
+    type: "task",
+    title: "Check with the hiring manager on feedback about the take-home and the second interview round",
+    scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+    payload: { priority: "high" },
+    subjects: [{ positionId: position.id }],
+  });
   return { projectId: project.id as string, positionId: position.id as string };
 }
 
@@ -64,8 +71,27 @@ test("tab bar, stage chips and sheets replace the sidebar and board", async ({ p
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Results for “Acme”" })).toBeVisible();
 
+  // Long action titles are cut off instead of widening the page.
+  await tabs.getByRole("link", { name: "Agenda" }).click();
+  await expect(page.getByRole("button", { name: /Check with the hiring manager/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+
+  // The assistant leaves the tab bar in place, and going back or to another tab closes it.
+  await tabs.getByRole("button", { name: "Assistant" }).click();
+  const assistant = page.getByRole("complementary", { name: "Assistant" });
+  await expect(assistant.getByRole("button", { name: "Go back" })).toBeVisible();
+  await expect(tabs).toBeVisible();
+  await tabs.getByRole("link", { name: "Pipeline" }).click();
+  await expect(assistant).toBeHidden();
+  await expect(page).toHaveURL(new RegExp(`/p/${projectId}$`));
+  await tabs.getByRole("button", { name: "Assistant" }).click();
+  await assistant.getByRole("button", { name: "Go back" }).click();
+  await expect(assistant).toBeHidden();
+
   // The position's main action floats above the tab bar.
   await page.goto(`/p/${projectId}/positions/${positionId}`);
+  await expect(page.getByRole("button", { name: /Check with the hiring manager/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
   await page.getByRole("button", { name: "Log or plan an action" }).click();
   await expect(page.getByRole("dialog", { name: "Log or plan an action" })).toBeVisible();
 });

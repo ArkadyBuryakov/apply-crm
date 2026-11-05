@@ -79,6 +79,11 @@ export function ProjectLayout() {
     panelOpen.set(open);
   }
 
+  /** Phone navigation leaves the assistant, which would otherwise keep covering the page that was opened. */
+  function closeAssistant() {
+    if (assistantOpen) toggleAssistant(false);
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "j") {
@@ -152,12 +157,14 @@ export function ProjectLayout() {
         projectId={projectId}
         assistantOpen={assistantOpen}
         onAssistant={() => toggleAssistant()}
+        onNavigate={closeAssistant}
         moreOpen={moreOpen}
         onMore={() => setMoreOpen(true)}
       />
       <MoreSheet
         open={moreOpen}
         onOpenChange={setMoreOpen}
+        onNavigate={closeAssistant}
         projectId={projectId}
         projectName={project.data?.name}
         role={project.data?.role}
@@ -173,7 +180,7 @@ export function ProjectLayout() {
 
 const MIN_WIDTH = 320;
 
-/** Full screen on phones; a resizable column beside the page from md up. */
+/** Above the tab bar on phones, so the other tabs stay a tap away; a resizable column beside the page from md up. */
 function AssistantSidebar({ children }: { children: ReactNode }) {
   const [width, setWidth] = useState(panelWidth.get);
 
@@ -201,7 +208,7 @@ function AssistantSidebar({ children }: { children: ReactNode }) {
     <aside
       aria-label="Assistant"
       style={{ "--assistant-width": `${width}px` } as CSSProperties}
-      className="fixed inset-0 z-40 flex bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:sticky md:top-0 md:z-auto md:h-screen md:w-[var(--assistant-width)] md:shrink-0 md:border-l md:border-border md:p-0"
+      className="fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex bg-background pt-[env(safe-area-inset-top)] md:sticky md:top-0 md:z-auto md:h-screen md:bottom-auto md:w-[var(--assistant-width)] md:shrink-0 md:border-l md:border-border md:p-0"
     >
       {/* biome-ignore lint/a11y/useSemanticElements: an interactive splitter, which <hr> cannot be */}
       <div
@@ -388,12 +395,14 @@ function TabBar({
   projectId,
   assistantOpen,
   onAssistant,
+  onNavigate,
   moreOpen,
   onMore,
 }: {
   projectId: string;
   assistantOpen: boolean;
   onAssistant: () => void;
+  onNavigate: () => void;
   moreOpen: boolean;
   onMore: () => void;
 }) {
@@ -404,16 +413,27 @@ function TabBar({
       aria-label="Tabs"
       className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
-      <Link to="/p/$projectId" params={{ projectId }} className={cn(TAB, on("pipeline") && TAB_ON)}>
+      <Link
+        to="/p/$projectId"
+        params={{ projectId }}
+        onClick={onNavigate}
+        className={cn(TAB, on("pipeline") && TAB_ON)}
+      >
         <KanbanSquare className="size-5" /> Pipeline
       </Link>
-      <Link to="/p/$projectId/agenda" params={{ projectId }} className={cn(TAB, on("agenda") && TAB_ON)}>
+      <Link
+        to="/p/$projectId/agenda"
+        params={{ projectId }}
+        onClick={onNavigate}
+        className={cn(TAB, on("agenda") && TAB_ON)}
+      >
         <CalendarDays className="size-5" /> Agenda
       </Link>
       <Link
         to="/p/$projectId/search"
         params={{ projectId }}
         search={{ q: "" }}
+        onClick={onNavigate}
         className={cn(TAB, on("search") && TAB_ON)}
       >
         <Search className="size-5" /> Search
@@ -439,19 +459,24 @@ const SHEET_ITEM = "flex h-12 items-center gap-3 rounded-lg px-3 text-[15px] hov
 function MoreSheet({
   open,
   onOpenChange,
+  onNavigate,
   projectId,
   projectName,
   role,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigate: () => void;
   projectId: string;
   projectName?: string;
   role?: string;
 }) {
   const { user } = useRouteContext({ from: "/authed" });
   const { theme } = useTheme();
-  const close = () => onOpenChange(false);
+  const close = () => {
+    onOpenChange(false);
+    onNavigate();
+  };
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="More">
       <div className="flex items-center justify-between gap-2 px-3 pb-2">

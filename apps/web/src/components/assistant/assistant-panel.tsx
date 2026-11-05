@@ -1,7 +1,7 @@
 // The in-app assistant (ADR 0031): a right sidebar with the current chat, its history and its settings.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { History, MessageSquarePlus, Trash2, X } from "lucide-react";
+import { ArrowLeft, History, MessageSquarePlus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { USER_MEMORIES_KEY } from "@/components/memory";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loading, Spinner } from "@/components/ui/misc";
 import { api, type Schemas, unwrap } from "@/lib/api";
 import { type ApprovalMode, activeChat, getDefaults, saveDefaults } from "@/lib/assistant-prefs";
+import { usePhone } from "@/lib/media";
 import { errorMessage, invalidateProject } from "@/lib/queries";
 import { cn, formatDateTime } from "@/lib/utils";
 import { ChatThread } from "./chat-thread";
@@ -35,6 +36,7 @@ export function AssistantPanel({ projectId, onClose }: { projectId: string; onCl
   const [showHistory, setShowHistory] = useState(false);
   const [draft, setDraft] = useState<ChatSettings>(getDefaults);
   const models = useAiModels();
+  const phone = usePhone();
 
   const chat = useQuery({
     queryKey: chatKey(chatId),
@@ -112,6 +114,12 @@ export function AssistantPanel({ projectId, onClose }: { projectId: string; onCl
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2">
+        {/* On phones the assistant covers the page, so closing it reads as going back to that page. */}
+        {phone ? (
+          <Button variant="ghost" className="px-2" onClick={onClose}>
+            <ArrowLeft /> Go back
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           size="icon"
@@ -128,9 +136,11 @@ export function AssistantPanel({ projectId, onClose }: { projectId: string; onCl
         <Button variant="ghost" size="icon" aria-label="New chat" title="New chat" onClick={() => open(null)}>
           <MessageSquarePlus />
         </Button>
-        <Button variant="ghost" size="icon" aria-label="Close assistant" title="Close (Ctrl+J)" onClick={onClose}>
-          <X />
-        </Button>
+        {phone ? null : (
+          <Button variant="ghost" size="icon" aria-label="Close assistant" title="Close (Ctrl+J)" onClick={onClose}>
+            <X />
+          </Button>
+        )}
       </div>
 
       {showHistory ? (

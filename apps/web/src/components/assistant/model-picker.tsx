@@ -73,7 +73,7 @@ export function ModelPicker({
       <Popover.Trigger
         aria-label="Model"
         title={selected ? `${providerLabel(selected.provider)} · ${selected.name}` : undefined}
-        className="flex h-8 min-w-0 max-w-40 flex-1 cursor-pointer items-center gap-1 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-8 min-w-0 max-w-40 pointer-coarse:h-10 flex-1 cursor-pointer items-center gap-1 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="min-w-0 flex-1 truncate text-left">{selected?.name ?? "Pick a model"}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
@@ -104,7 +104,7 @@ export function ModelPicker({
               aria-controls="model-options"
               role="combobox"
               aria-expanded
-              className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="h-9 w-full bg-transparent text-base outline-none md:text-sm pointer-coarse:h-10 placeholder:text-muted-foreground"
             />
           </div>
           <div ref={list} id="model-options" role="listbox" className="max-h-72 overflow-y-auto p-1">
@@ -131,7 +131,7 @@ export function ModelPicker({
                       onKeyDown={onKeyDown}
                       onMouseMove={() => setActive(index)}
                       className={cn(
-                        "flex cursor-pointer select-none items-center gap-2 rounded px-2 py-1.5 text-sm",
+                        "flex cursor-pointer select-none items-center gap-2 rounded px-2 py-1.5 text-sm pointer-coarse:py-2.5",
                         index === active && "bg-muted",
                       )}
                     >
