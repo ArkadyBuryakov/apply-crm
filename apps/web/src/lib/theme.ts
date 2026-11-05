@@ -20,7 +20,10 @@ function stored(): Theme {
 const resolve = (theme: Theme) => (theme === "system" ? (media().matches ? "dark" : "light") : theme);
 
 function apply() {
-  document.documentElement.classList.toggle("dark", resolve(stored()) === "dark");
+  const dark = resolve(stored()) === "dark";
+  document.documentElement.classList.toggle("dark", dark);
+  // The phone's status bar around the installed app (index.html); matches --background in styles.css.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0b0b0f" : "#ffffff");
   for (const notify of listeners) notify();
 }
 

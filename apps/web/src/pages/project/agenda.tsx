@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { ListFilter, Plus } from "lucide-react";
 import { useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { ActionItem } from "@/components/action-item";
@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateInput } from "@/components/ui/date-picker";
 import { Select } from "@/components/ui/form";
-import { Loading, PageHeader } from "@/components/ui/misc";
+import { Fab, Loading, PageHeader } from "@/components/ui/misc";
 import { type Action, api, unwrap } from "@/lib/api";
 import { useCan, useMe, useMembers } from "@/lib/queries";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 /** In-app reminders (ADR 0016): overdue, today's and upcoming planned work, bucketed by day by the API. */
 export function AgendaPage() {
@@ -23,6 +23,7 @@ export function AgendaPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [creating, setCreating] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const agenda = useQuery({
     queryKey: ["agenda", projectId, { assigneeId, from, to }],
     queryFn: () =>
@@ -46,6 +47,7 @@ export function AgendaPage() {
     <div>
       <PageHeader
         title="Agenda"
+        phoneTitle={false}
         subtitle={
           agenda.data
             ? `${formatDate(agenda.data.from)} – ${formatDate(agenda.data.to)} (${agenda.data.timezone})`
@@ -53,15 +55,29 @@ export function AgendaPage() {
         }
         actions={
           can("action:create") ? (
-            <Button onClick={() => setCreating(true)}>
+            <Button className="max-md:hidden" onClick={() => setCreating(true)}>
               <Plus /> Plan something
             </Button>
           ) : null
         }
       />
-      <div className="mb-4 flex flex-wrap gap-2">
+      {/* Phones fold the filters behind one button that says what they are set to. */}
+      <Button variant="secondary" className="mb-3 md:hidden" onClick={() => setFiltersOpen(!filtersOpen)}>
+        <ListFilter />
+        {[
+          assigneeId
+            ? assigneeId === me.data?.id
+              ? "Me"
+              : members.data?.find((m) => m.userId === assigneeId)?.name
+            : "Everyone",
+          from || to ? `${from ? formatDate(from) : "…"} – ${to ? formatDate(to) : "…"}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </Button>
+      <div className={cn("mb-4 flex flex-wrap gap-2 max-md:grid max-md:grid-cols-2", !filtersOpen && "max-md:hidden")}>
         <Select
-          className="w-48"
+          className="w-48 max-md:col-span-2 max-md:w-full"
           value={assigneeId}
           onChange={(e) => setAssigneeId(e.target.value)}
           aria-label="Assignee"
@@ -77,14 +93,14 @@ export function AgendaPage() {
             ))}
         </Select>
         <DateInput
-          className="w-44"
+          className="w-44 max-md:w-full"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           aria-label="From"
           placeholder="From"
         />
         <DateInput
-          className="w-44"
+          className="w-44 max-md:w-full"
           value={to}
           onChange={(e) => setTo(e.target.value)}
           aria-label="To"
@@ -139,6 +155,7 @@ export function AgendaPage() {
           </Card>
         </div>
       ) : null}
+      {can("action:create") ? <Fab label="Plan something" onClick={() => setCreating(true)} /> : null}
       {creating ? (
         <ActionDialog projectId={projectId} open onOpenChange={setCreating} defaults={{ type: "task" }} />
       ) : null}

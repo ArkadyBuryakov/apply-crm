@@ -28,6 +28,7 @@ export function OrganizationsPage() {
     <div>
       <PageHeader
         title="Organizations"
+        phoneTitle={false}
         subtitle="Companies you apply to and the agencies that represent them"
         actions={
           can("organization_entity:create") ? (

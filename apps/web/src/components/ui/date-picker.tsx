@@ -88,7 +88,7 @@ export function DateTimeInput({
           aria-label="Time"
           value={time}
           onChange={(e) => set(day || toKey(new Date()), e.target.value)}
-          className="h-8 flex-1 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:hidden"
+          className="h-8 flex-1 rounded-md border border-input bg-transparent px-2 text-base md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-calendar-picker-indicator]:hidden"
         />
         <Button size="sm" onClick={() => setOpen(false)}>
           Done
@@ -120,7 +120,7 @@ function Picker({
       <Popover.Trigger
         aria-label={props["aria-label"]}
         className={cn(
-          "flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent px-3 text-left text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+          "flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent px-3 text-left text-base shadow-xs pointer-coarse:h-10 md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
           className,
         )}
       >

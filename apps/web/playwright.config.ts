@@ -12,9 +12,19 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
-    ...devices["Desktop Chrome"],
     ...(systemChromium && !process.env.CI ? { launchOptions: { executablePath: systemChromium } } : {}),
   },
+  projects: [
+    { name: "desktop", use: devices["Desktop Chrome"], testIgnore: /phone\.spec/ },
+    // Below `md` the app switches to the phone layout (ADR 0035). Runs after desktop: the smoke test there has to be
+    // the one that creates the instance's first user.
+    {
+      name: "phone",
+      use: devices["Pixel 7"],
+      testMatch: /(phone|screenshots)\.spec/,
+      dependencies: ["desktop"],
+    },
+  ],
   webServer: {
     command: "pnpm --filter @crm/api exec tsx src/scripts/e2e-server.ts",
     url: `http://localhost:${PORT}/api/config`,

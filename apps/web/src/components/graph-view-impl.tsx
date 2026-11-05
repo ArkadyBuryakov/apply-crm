@@ -23,6 +23,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Select } from "@/components/ui/form";
 import { ACTION_META, STATUS_TONE } from "@/lib/actions";
 import { type Action, type Edge as ApiEdge, api, unwrap } from "@/lib/api";
+import { usePhone } from "@/lib/media";
 import { useCan, useProjectMutation } from "@/lib/queries";
 import { cn, formatDate, humanize } from "@/lib/utils";
 import "@xyflow/react/dist/style.css";
@@ -115,6 +116,8 @@ function hasCycle(edges: ApiEdge[]) {
 
 export function GraphView({ projectId, actions, edges }: { projectId: string; actions: Action[]; edges: ApiEdge[] }) {
   const can = useCan(projectId);
+  // Phones only pan, zoom and open actions: dragging on a touch screen should move the view, not a node or an edge.
+  const phone = usePhone();
   const flow = useMemo(() => layout(actions, edges), [actions, edges]);
   const cyclic = useMemo(() => hasCycle(edges), [edges]);
   const [pending, setPending] = useState<Connection | null>(null);
@@ -140,11 +143,12 @@ export function GraphView({ projectId, actions, edges }: { projectId: string; ac
           fitView
           fitViewOptions={{ maxZoom: 1 }}
           minZoom={0.2}
-          nodesDraggable
-          nodesConnectable={can("edge:create")}
+          nodesDraggable={!phone}
+          nodesConnectable={!phone && can("edge:create")}
           onConnect={(c) => c.source !== c.target && setPending(c)}
           onNodeClick={(_, node) => setEditing((node.data as ActionNodeData).action)}
           onEdgeClick={(_, e) =>
+            !phone &&
             can("edge:delete") &&
             setSelectedEdge(edges.find((x) => `${x.parentId}-${x.childId}-${x.kind}` === e.id) ?? null)
           }

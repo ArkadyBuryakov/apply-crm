@@ -132,7 +132,7 @@ export function InlineField({
             type="button"
             aria-label={typeof label === "string" ? `Edit ${label.toLowerCase()}` : "Edit"}
             title="Edit"
-            className="cursor-pointer rounded p-0.5 opacity-0 hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/field:opacity-100"
+            className="cursor-pointer rounded p-0.5 opacity-0 hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/field:opacity-100 pointer-coarse:opacity-100 max-md:opacity-100"
             onClick={() => {
               onEdit?.();
               setEditing(true);

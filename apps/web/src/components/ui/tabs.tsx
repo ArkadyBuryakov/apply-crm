@@ -5,14 +5,19 @@ import { cn } from "@/lib/utils";
 export const Tabs = T.Root;
 
 export function TabsList({ className, ...props }: ComponentProps<typeof T.List>) {
-  return <T.List className={cn("flex gap-1 border-b border-border", className)} {...props} />;
+  return (
+    <T.List
+      className={cn("flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none]", className)}
+      {...props}
+    />
+  );
 }
 
 export function TabsTrigger({ className, ...props }: ComponentProps<typeof T.Trigger>) {
   return (
     <T.Trigger
       className={cn(
-        "-mb-px cursor-pointer rounded-t-md border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-foreground",
+        "-mb-px shrink-0 cursor-pointer whitespace-nowrap rounded-t-md border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-foreground",
         className,
       )}
       {...props}

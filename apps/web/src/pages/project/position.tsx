@@ -1,7 +1,7 @@
 import { POSITION_OUTCOMES, type PositionOutcome } from "@crm/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ExternalLink, FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
 import { ActionItem } from "@/components/action-item";
@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/form";
-import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
+import { Menu, MenuItem } from "@/components/ui/menu";
+import { EmptyState, Fab, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, unwrap } from "@/lib/api";
 import { useCan, useProjectMutation, useStages } from "@/lib/queries";
@@ -111,7 +112,7 @@ export function PositionPage() {
           can("position:update") ? (
             <>
               <Select
-                className="w-40"
+                className="w-40 max-md:w-auto max-md:max-w-44"
                 aria-label="Stage"
                 value={position.stageId}
                 onChange={(e) => patch.mutate({ stageId: e.target.value })}
@@ -123,7 +124,7 @@ export function PositionPage() {
                 ))}
               </Select>
               <Select
-                className="w-36"
+                className="w-36 max-md:w-auto"
                 aria-label="Outcome"
                 value={position.outcome}
                 onChange={(e) => patch.mutate({ outcome: e.target.value as PositionOutcome })}
@@ -134,7 +135,7 @@ export function PositionPage() {
                   </option>
                 ))}
               </Select>
-              <Button variant="outline" onClick={() => setEditing(true)}>
+              <Button variant="outline" className="max-md:hidden" onClick={() => setEditing(true)}>
                 <Pencil /> Edit
               </Button>
               {can("position:delete") ? (
@@ -142,11 +143,30 @@ export function PositionPage() {
                   variant="ghost"
                   size="icon"
                   aria-label="Delete position"
+                  className="max-md:hidden"
                   onClick={() => remove.mutate(undefined)}
                 >
                   <Trash2 />
                 </Button>
               ) : null}
+              <div className="md:hidden">
+                <Menu
+                  trigger={
+                    <Button variant="ghost" size="icon" aria-label="More">
+                      <MoreHorizontal />
+                    </Button>
+                  }
+                >
+                  <MenuItem onSelect={() => setEditing(true)}>
+                    <Pencil /> Edit
+                  </MenuItem>
+                  {can("position:delete") ? (
+                    <MenuItem destructive onSelect={() => remove.mutate(undefined)}>
+                      <Trash2 /> Delete
+                    </MenuItem>
+                  ) : null}
+                </Menu>
+              </div>
             </>
           ) : (
             <Badge tone={OUTCOME_TONE[position.outcome]}>
@@ -168,9 +188,12 @@ export function PositionPage() {
 
         <TabsContent value="timeline">
           {can("action:create") ? (
-            <Button className="mb-3" onClick={() => setLogging(true)}>
-              <Plus /> Log or plan an action
-            </Button>
+            <>
+              <Button className="mb-3 max-md:hidden" onClick={() => setLogging(true)}>
+                <Plus /> Log or plan an action
+              </Button>
+              <Fab label="Log or plan an action" text="Log action" onClick={() => setLogging(true)} />
+            </>
           ) : null}
           {timeline.length === 0 ? <EmptyState title="Nothing logged yet" /> : null}
           <div className="grid gap-0.5">

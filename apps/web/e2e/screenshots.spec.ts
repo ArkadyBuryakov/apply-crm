@@ -6,6 +6,9 @@ test.skip(!process.env.SCREENSHOTS, "set SCREENSHOTS=dir to capture");
 test("capture", async ({ page }) => {
   const request = page.request;
   const out = process.env.SCREENSHOTS!;
+  const phone = test.info().project.name === "phone";
+  const shot = (name: string) =>
+    page.screenshot({ path: `${out}/${test.info().project.name}-${name}.png`, fullPage: true });
   const res = await request.post("/api/auth/sign-in/email", {
     data: { email: "ada@example.test", password: "correct horse battery" },
     headers: { origin: "http://localhost:3100" },
@@ -108,31 +111,40 @@ test("capture", async ({ page }) => {
 
   await page.goto(`/p/${project.id}`);
   await expect(page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
-  await page.screenshot({ path: `${out}/board.png`, fullPage: true });
+  await shot("board");
   await page.goto(`/p/${project.id}/positions/${staff.id}`);
   await expect(page.getByRole("heading", { name: "Staff engineer" })).toBeVisible();
-  await page.screenshot({ path: `${out}/position.png`, fullPage: true });
+  await shot("position");
   await page.getByRole("tab", { name: "Graph" }).click();
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
   await page.waitForTimeout(500);
-  await page.screenshot({ path: `${out}/graph.png`, fullPage: true });
+  await shot("graph");
   await page.getByRole("tab", { name: "Timeline" }).click();
   await page.getByRole("button", { name: "Log or plan an action" }).click();
   await page.getByRole("dialog").getByRole("combobox", { name: "Type" }).click();
   await page.getByRole("option", { name: "Offer" }).click();
-  await page.screenshot({ path: `${out}/action-dialog.png`, fullPage: true });
+  await shot("action-dialog");
   await page.keyboard.press("Escape");
   await page.locator("main button.text-left.font-medium").first().click();
-  await page.getByRole("dialog").getByText("Notes").hover();
-  await page.screenshot({ path: `${out}/action-details.png`, fullPage: true });
+  // Phones have no hover; their edit buttons always show.
+  if (!phone) await page.getByRole("dialog").getByText("Notes").hover();
+  await shot("action-details");
   await page.getByRole("dialog").getByRole("button", { name: "Edit notes" }).click();
   await page.getByRole("dialog").getByRole("textbox").fill("Ask about the on-call rotation");
   await page.waitForTimeout(900);
-  await page.screenshot({ path: `${out}/action-details-saving.png`, fullPage: true });
+  await shot("action-details-saving");
   await page.keyboard.press("Escape");
   await page.goto(`/p/${project.id}/agenda`);
   await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
-  await page.screenshot({ path: `${out}/agenda.png`, fullPage: true });
+  await shot("agenda");
   await page.goto(`/p/${project.id}/settings`);
-  await page.screenshot({ path: `${out}/settings.png`, fullPage: true });
+  await shot("settings");
+  if (phone) {
+    await page.getByRole("button", { name: "More" }).click();
+    await shot("more");
+    await page.keyboard.press("Escape");
+    await page.goto(`/p/${project.id}/positions/${staff.id}`);
+    await page.getByRole("tab", { name: "Documents (0)" }).click();
+    await shot("position-tabs");
+  }
 });

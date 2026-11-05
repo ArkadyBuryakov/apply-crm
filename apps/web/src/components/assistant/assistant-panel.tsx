@@ -235,7 +235,7 @@ function ChatHistory({
               variant="ghost"
               size="icon"
               aria-label={`Delete ${c.title}`}
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
               onClick={() => setConfirming(c.id)}
             >
               <Trash2 />

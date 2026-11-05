@@ -4,7 +4,7 @@
 import { DOCUMENT_KINDS, type DocumentKind } from "@crm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Download, FileUp, Pencil, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Download, ExternalLink, FileUp, Pencil, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type DocumentT, type Schemas, unwrap, uploadForm } from "@/lib/api";
+import { usePhone } from "@/lib/media";
 import { invalidateProject, useCan, useMe, usePositions, useProjectMutation } from "@/lib/queries";
 import { cn, formatDateTime, humanize } from "@/lib/utils";
 
@@ -50,6 +51,7 @@ export function DocumentsPage() {
     <div>
       <PageHeader
         title="Documents"
+        phoneTitle={false}
         subtitle="Every version is kept; actions record exactly which version was sent."
         actions={
           can("document:create") ? (
@@ -454,7 +456,7 @@ export function DocumentDetailPage() {
                 <Button variant="outline" onClick={() => setEditingDetails(true)}>
                   <Pencil /> Rename
                 </Button>
-                <Button onClick={() => setEditing(true)}>
+                <Button className="max-md:hidden" onClick={() => setEditing(true)}>
                   <Plus /> New LaTeX version
                 </Button>
                 <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input px-3 text-sm hover:bg-muted">
@@ -518,7 +520,12 @@ export function DocumentDetailPage() {
                   </Button>
                 ) : null}
                 {v.format === "latex" && can("document:update") ? (
-                  <Button variant="ghost" size="sm" onClick={() => recompile.mutate(undefined)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="max-md:hidden"
+                    onClick={() => recompile.mutate(undefined)}
+                  >
                     <RefreshCw /> Compile again
                   </Button>
                 ) : null}
@@ -640,6 +647,8 @@ function Preview({
   onCreated: (versionId: string) => void;
 }) {
   const [picked, setPicked] = useState<PreviewTab | null>(null);
+  // Phones only read and download: LaTeX is written on a keyboard, and mobile browsers do not show PDFs inline.
+  const phone = usePhone();
   const available: PreviewTab[] = [
     ...(version.hasPdf ? (["pdf"] as const) : []),
     ...(version.source !== null ? (["source"] as const) : []),
@@ -663,7 +672,15 @@ function Preview({
       </TabsList>
       {available.includes("pdf") ? (
         <TabsContent value="pdf">
-          <iframe title="PDF preview" src={pdfUrl} className="h-[75vh] w-full rounded-lg border border-border" />
+          {phone ? (
+            <Button variant="outline" asChild>
+              <a href={pdfUrl} target="_blank" rel="noreferrer">
+                <ExternalLink /> Open the PDF
+              </a>
+            </Button>
+          ) : (
+            <iframe title="PDF preview" src={pdfUrl} className="h-[75vh] w-full rounded-lg border border-border" />
+          )}
         </TabsContent>
       ) : null}
       {version.source !== null ? (
@@ -675,7 +692,7 @@ function Preview({
             documentId={documentId}
             version={version}
             source={version.source}
-            editable={editable}
+            editable={editable && !phone}
             onCreated={onCreated}
           />
         </TabsContent>
@@ -806,7 +823,7 @@ function LatexEditor({
     },
   );
   return (
-    <Dialog open onOpenChange={onClose} title="New LaTeX version" className="w-[min(1000px,calc(100vw-2rem))]">
+    <Dialog open onOpenChange={onClose} title="New LaTeX version" className="sm:w-[min(1000px,calc(100vw-2rem))]">
       <div className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Template version">

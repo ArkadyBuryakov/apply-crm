@@ -4,10 +4,10 @@ import { Children, type ComponentProps, Fragment, isValidElement, type ReactElem
 import { cn } from "@/lib/utils";
 
 const control =
-  "w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+  "w-full rounded-md border border-input bg-transparent px-3 text-base shadow-xs md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
-  return <input className={cn(control, "h-9", className)} {...props} />;
+  return <input className={cn(control, "h-9 pointer-coarse:h-10", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
@@ -95,7 +95,7 @@ export function Select({
         aria-label={ariaLabel}
         className={cn(
           control,
-          "flex h-9 cursor-pointer items-center justify-between gap-2 pr-2 text-left data-[placeholder]:text-muted-foreground",
+          "flex h-9 cursor-pointer items-center justify-between pointer-coarse:h-10 gap-2 pr-2 text-left data-[placeholder]:text-muted-foreground",
           className,
         )}
       >
@@ -124,7 +124,7 @@ export function Select({
                     key={o.value}
                     value={toRadix(o.value)!}
                     disabled={o.disabled}
-                    className="flex cursor-pointer select-none items-center gap-2 rounded py-1.5 pl-2 pr-8 outline-none data-[disabled]:pointer-events-none data-[highlighted]:bg-muted data-[disabled]:opacity-50 relative"
+                    className="flex cursor-pointer select-none items-center gap-2 rounded py-1.5 pl-2 pr-8 outline-none pointer-coarse:py-2.5 data-[disabled]:pointer-events-none data-[highlighted]:bg-muted data-[disabled]:opacity-50 relative"
                   >
                     <S.ItemText>{o.label}</S.ItemText>
                     <S.ItemIndicator className="absolute right-2">

@@ -8,6 +8,7 @@ export function MemoryPage() {
     <div className="grid max-w-4xl gap-6">
       <PageHeader
         title="Memory"
+        phoneTitle={false}
         subtitle="What the assistant and connected MCP clients remember between conversations."
       />
       <ProjectMemoryCard projectId={projectId} />

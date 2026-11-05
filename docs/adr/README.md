@@ -39,5 +39,6 @@ Records are never edited after acceptance except to change status. To revise a d
 | 0032 | [Assistant memory](0032-assistant-memory.md) | Accepted |
 | 0033 | [Audit log is owner-only](0033-audit-log-owner-only.md) | Accepted, amends 0015 |
 | 0034 | [Live updates](0034-live-updates.md) | Accepted |
+| 0035 | [Phone layout and home-screen install](0035-phone-layout.md) | Accepted |
 
 Open questions live in `docs/questions/`.

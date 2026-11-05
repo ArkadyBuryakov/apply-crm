@@ -138,7 +138,7 @@ function ActionForm({ projectId, open, onOpenChange, defaults, previousAction }:
           Log or plan an action
         </span>
       }
-      className="w-[min(760px,calc(100vw-2rem))]"
+      className="sm:w-[min(760px,calc(100vw-2rem))]"
       footer={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -313,7 +313,7 @@ function ActionDetails({
           {meta.label}
         </span>
       }
-      className="w-[min(760px,calc(100vw-2rem))]"
+      className="sm:w-[min(760px,calc(100vw-2rem))]"
     >
       <div className="grid gap-4">
         <InlineText

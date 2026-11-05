@@ -278,7 +278,7 @@ function salaryBody(s: SalaryDraft) {
 function SalaryInputs({ value, onChange }: { value: SalaryDraft; onChange: (v: SalaryDraft) => void }) {
   const set = (patch: Partial<SalaryDraft>) => onChange({ ...value, ...patch });
   return (
-    <div className="grid grid-cols-[1fr_1fr_5rem_8rem] gap-2">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_5rem_8rem]">
       <Input type="number" min={0} placeholder="Min" value={value.min} onChange={(e) => set({ min: e.target.value })} />
       <Input type="number" min={0} placeholder="Max" value={value.max} onChange={(e) => set({ max: e.target.value })} />
       <Input
@@ -358,7 +358,7 @@ function PositionForm({
       open
       onOpenChange={onClose}
       title="New position"
-      className="w-[min(760px,calc(100vw-2rem))]"
+      className="sm:w-[min(760px,calc(100vw-2rem))]"
       footer={<DialogButtons formId={formId} onCancel={onClose} pending={save.isPending} />}
     >
       <form
@@ -490,7 +490,7 @@ function PositionDetails({
     );
 
   return (
-    <Dialog open onOpenChange={onClose} title={p.title} className="w-[min(760px,calc(100vw-2rem))]">
+    <Dialog open onOpenChange={onClose} title={p.title} className="sm:w-[min(760px,calc(100vw-2rem))]">
       <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
         <InlineText
           label="Title"

@@ -37,10 +37,18 @@ export function GraphPage() {
     <div className="flex flex-1 flex-col">
       <PageHeader
         title="Action graph"
-        subtitle="How actions led to each other. Drag from a node's bottom handle to another node to link them; click an edge to remove it."
+        phoneTitle={false}
+        subtitle={
+          <>
+            How actions led to each other.{" "}
+            <span className="max-md:hidden">
+              Drag from a node's bottom handle to another node to link them; click an edge to remove it.
+            </span>
+          </>
+        }
         actions={
           <Select
-            className="w-72"
+            className="w-72 max-md:w-full"
             value={filter}
             onChange={(e) => {
               const [kind, id] = e.target.value.split(":");

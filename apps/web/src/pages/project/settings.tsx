@@ -29,7 +29,7 @@ export function SettingsPage() {
   const { projectId } = useParams({ from: "/authed/p/$projectId/settings" });
   return (
     <div className="grid max-w-4xl gap-6">
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" phoneTitle={false} />
       <GeneralSection projectId={projectId} />
       <McpSection projectId={projectId} />
       <MembersSection projectId={projectId} />

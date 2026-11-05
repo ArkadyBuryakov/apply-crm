@@ -2,15 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover pairs with the env(safe-area-inset-*) padding on the header, tab bar and sheets. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <!-- Installable to the home screen (ADR 0035); src/lib/theme.ts keeps theme-color in step with the theme. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Apply CRM" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Apply CRM</title>
     <script>
       // Applies the stored theme before the first paint (see src/lib/theme.ts).
       try {
         const theme = localStorage.getItem("theme");
-        if (theme === "dark" || (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches))
+        if (theme === "dark" || (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)) {
           document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="theme-color"]').content = "#0b0b0f";
+        }
       } catch {}
     </script>
   </head>

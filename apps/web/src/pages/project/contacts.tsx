@@ -25,6 +25,7 @@ export function ContactsPage() {
     <div>
       <PageHeader
         title="Contacts"
+        phoneTitle={false}
         subtitle="Recruiters, hiring managers, interviewers, referees"
         actions={
           can("contact:create") ? (
