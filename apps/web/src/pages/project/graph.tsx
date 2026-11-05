@@ -34,7 +34,7 @@ export function GraphPage() {
       : "";
 
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
       <PageHeader
         title="Action graph"
         subtitle="How actions led to each other. Drag from a node's bottom handle to another node to link them; click an edge to remove it."
@@ -77,7 +77,7 @@ export function GraphPage() {
               Showing the newest actions only; filter by a position to see all.
             </p>
           ) : null}
-          <GraphView projectId={projectId} actions={graph.data.nodes} edges={graph.data.edges} height={680} />
+          <GraphView projectId={projectId} actions={graph.data.nodes} edges={graph.data.edges} />
         </>
       ) : null}
     </div>

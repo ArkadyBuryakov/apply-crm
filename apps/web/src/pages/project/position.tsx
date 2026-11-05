@@ -61,7 +61,7 @@ export function PositionPage() {
   const salary = formatSalary(position.salary);
 
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
       <PageHeader
         title={position.title}
         subtitle={
@@ -156,7 +156,7 @@ export function PositionPage() {
         }
       />
 
-      <Tabs defaultValue="timeline">
+      <Tabs defaultValue="timeline" className="flex flex-1 flex-col">
         <TabsList>
           <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
           <TabsTrigger value="graph">Graph</TabsTrigger>
@@ -180,7 +180,7 @@ export function PositionPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="graph">
+        <TabsContent value="graph" className="flex flex-1 flex-col">
           <GraphView projectId={projectId} actions={timeline} edges={edges} />
         </TabsContent>
 

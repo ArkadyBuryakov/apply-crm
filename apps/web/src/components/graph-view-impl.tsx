@@ -113,17 +113,7 @@ function hasCycle(edges: ApiEdge[]) {
   return [...children.keys()].some(visit);
 }
 
-export function GraphView({
-  projectId,
-  actions,
-  edges,
-  height = 520,
-}: {
-  projectId: string;
-  actions: Action[];
-  edges: ApiEdge[];
-  height?: number;
-}) {
+export function GraphView({ projectId, actions, edges }: { projectId: string; actions: Action[]; edges: ApiEdge[] }) {
   const can = useCan(projectId);
   const flow = useMemo(() => layout(actions, edges), [actions, edges]);
   const cyclic = useMemo(() => hasCycle(edges), [edges]);
@@ -135,31 +125,35 @@ export function GraphView({
     return <p className="p-6 text-sm text-muted-foreground">No actions yet.</p>;
   }
   return (
-    <div className="relative rounded-lg border border-border" style={{ height }}>
+    // Fills the rest of a flex-column parent; React Flow sizes itself to the absolutely positioned box.
+    <div className="relative min-h-[420px] flex-1 rounded-lg border border-border">
       {cyclic ? (
         <div className="absolute left-2 top-2 z-10 rounded-md bg-warning/15 px-2 py-1 text-xs text-warning">
           This graph contains a cycle
         </div>
       ) : null}
-      <ReactFlow
-        nodes={flow.nodes}
-        edges={flow.edges}
-        nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.2}
-        nodesDraggable
-        nodesConnectable={can("edge:create")}
-        onConnect={(c) => c.source !== c.target && setPending(c)}
-        onNodeClick={(_, node) => setEditing((node.data as ActionNodeData).action)}
-        onEdgeClick={(_, e) =>
-          can("edge:delete") &&
-          setSelectedEdge(edges.find((x) => `${x.parentId}-${x.childId}-${x.kind}` === e.id) ?? null)
-        }
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background gap={16} />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+      <div className="absolute inset-0">
+        <ReactFlow
+          nodes={flow.nodes}
+          edges={flow.edges}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ maxZoom: 1 }}
+          minZoom={0.2}
+          nodesDraggable
+          nodesConnectable={can("edge:create")}
+          onConnect={(c) => c.source !== c.target && setPending(c)}
+          onNodeClick={(_, node) => setEditing((node.data as ActionNodeData).action)}
+          onEdgeClick={(_, e) =>
+            can("edge:delete") &&
+            setSelectedEdge(edges.find((x) => `${x.parentId}-${x.childId}-${x.kind}` === e.id) ?? null)
+          }
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={16} />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      </div>
       {pending ? <NewEdgeDialog projectId={projectId} connection={pending} onClose={() => setPending(null)} /> : null}
       {editing ? (
         <ActionDialog projectId={projectId} open onOpenChange={() => setEditing(null)} action={editing} />
