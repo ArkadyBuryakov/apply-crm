@@ -32,7 +32,7 @@ async function setUp(page: Page) {
 
 test("tab bar, stage chips and sheets replace the sidebar and board", async ({ page }) => {
   const { projectId, positionId } = await setUp(page);
-  await page.goto(`/p/${projectId}`);
+  await page.goto(`/p/${projectId}/pipeline`);
 
   const tabs = page.getByRole("navigation", { name: "Tabs" });
   await expect(tabs).toBeVisible();
@@ -57,7 +57,7 @@ test("tab bar, stage chips and sheets replace the sidebar and board", async ({ p
   await page.getByRole("link", { name: /Staff engineer/ }).click();
   await expect(page.getByRole("heading", { name: "Staff engineer" })).toBeVisible();
   await page.getByRole("button", { name: "Pipeline" }).click();
-  await expect(page).toHaveURL(new RegExp(`/p/${projectId}$`));
+  await expect(page).toHaveURL(new RegExp(`/p/${projectId}/pipeline$`));
 
   // More holds the rest of the sidebar.
   await tabs.getByRole("button", { name: "More" }).click();
@@ -83,7 +83,7 @@ test("tab bar, stage chips and sheets replace the sidebar and board", async ({ p
   await expect(tabs).toBeVisible();
   await tabs.getByRole("link", { name: "Pipeline" }).click();
   await expect(assistant).toBeHidden();
-  await expect(page).toHaveURL(new RegExp(`/p/${projectId}$`));
+  await expect(page).toHaveURL(new RegExp(`/p/${projectId}/pipeline$`));
   await tabs.getByRole("button", { name: "Assistant" }).click();
   await assistant.getByRole("button", { name: "Go back" }).click();
   await expect(assistant).toBeHidden();

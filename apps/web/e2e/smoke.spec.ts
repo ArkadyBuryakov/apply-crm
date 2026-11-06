@@ -15,6 +15,8 @@ test("first user sets up a project and logs an interaction", async ({ page }) =>
   await page.getByRole("button", { name: "New project" }).click();
   await page.getByLabel("Name").fill("Job search");
   await page.getByRole("button", { name: "Create" }).click();
+  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
+  await page.getByRole("link", { name: "Pipeline" }).click();
   await expect(page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
 
   await page.getByRole("button", { name: "New position" }).click();
@@ -75,7 +77,7 @@ test("assistant sidebar opens and asks for a provider key", async ({ page }) => 
     await request.post("/api/projects", { data: { name: "Assistant" }, headers: { origin: "http://localhost:3100" } })
   ).json();
 
-  await page.goto(`/p/${project.id}/agenda`);
+  await page.goto(`/p/${project.id}`);
   const sidebar = page.getByRole("complementary", { name: "Assistant" });
   await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
   await expect(sidebar).toBeHidden();
@@ -103,7 +105,7 @@ test("assistant sidebar opens and asks for a provider key", async ({ page }) => 
   await sidebar.getByRole("button", { name: "Close assistant" }).click();
   await expect(sidebar).toBeHidden();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
   await expect(sidebar).toBeHidden();
 });
 
@@ -167,7 +169,7 @@ test("assistant navigates the app and continues with the result", async ({ page 
     );
   });
 
-  await page.goto(`/p/${project.id}/agenda`);
+  await page.goto(`/p/${project.id}`);
   await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
   await page.keyboard.press("Control+j");
   const sidebar = page.getByRole("complementary", { name: "Assistant" });
@@ -176,7 +178,7 @@ test("assistant navigates the app and continues with the result", async ({ page 
 
   await expect(page).toHaveURL(new RegExp(`/p/${project.id}/contacts$`));
   await expect(sidebar.getByText("Here are your")).toBeVisible();
-  expect(bodies[0]!.page).toContain("/agenda");
+  expect(bodies[0]!.page).toMatch(new RegExp(`/p/${project.id}/?$`));
   const call = bodies[1]!.message.parts.find((p) => p.type === "tool-navigate");
   expect(call).toMatchObject({ state: "output-available", output: { ok: true } });
   await expect(sidebar.getByText("Show my contacts")).toBeVisible();

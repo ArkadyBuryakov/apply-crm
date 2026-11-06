@@ -109,7 +109,7 @@ test("capture", async ({ page }) => {
   });
   void tech;
 
-  await page.goto(`/p/${project.id}`);
+  await page.goto(`/p/${project.id}/pipeline`);
   await expect(page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
   await shot("board");
   await page.goto(`/p/${project.id}/positions/${staff.id}`);
@@ -134,7 +134,7 @@ test("capture", async ({ page }) => {
   await page.waitForTimeout(900);
   await shot("action-details-saving");
   await page.keyboard.press("Escape");
-  await page.goto(`/p/${project.id}/agenda`);
+  await page.goto(`/p/${project.id}`);
   await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
   await shot("agenda");
   await page.goto(`/p/${project.id}/settings`);
