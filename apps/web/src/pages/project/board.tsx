@@ -21,7 +21,7 @@ export const OUTCOME_TONE = {
 
 /** Pipeline board (ADR 0014): columns are stages; by default only open positions are shown. */
 export function BoardPage() {
-  const { projectId } = useParams({ from: "/authed/p/$projectId/" });
+  const { projectId } = useParams({ from: "/authed/p/$projectId/pipeline" });
   const can = useCan(projectId);
   const [showClosed, setShowClosed] = useState(false);
   const stages = useStages(projectId);

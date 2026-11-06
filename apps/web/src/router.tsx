@@ -74,9 +74,15 @@ const projectRoute = createRoute({
   path: "/p/$projectId",
   component: ProjectLayout,
 });
-const boardRoute = createRoute({
+const agendaRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/",
+  component: AgendaPage,
+  staticData: { description: "Agenda: overdue actions, today's, and what is coming up by day" },
+});
+const boardRoute = createRoute({
+  getParentRoute: () => projectRoute,
+  path: "/pipeline",
   component: BoardPage,
   staticData: { description: "Pipeline board: the project's positions grouped by stage" },
 });
@@ -111,12 +117,6 @@ const contactRoute = createRoute({
   path: "/contacts/$contactId",
   component: ContactDetailPage,
   staticData: { description: "One contact: handles, affiliations and the actions they took part in" },
-});
-const agendaRoute = createRoute({
-  getParentRoute: () => projectRoute,
-  path: "/agenda",
-  component: AgendaPage,
-  staticData: { description: "Agenda: overdue actions, today's, and what is coming up by day" },
 });
 const graphRoute = createRoute({
   getParentRoute: () => projectRoute,
@@ -169,13 +169,13 @@ const routeTree = rootRoute.addChildren([
     projectsRoute,
     accountRoute,
     projectRoute.addChildren([
+      agendaRoute,
       boardRoute,
       positionRoute,
       organizationsRoute,
       organizationRoute,
       contactsRoute,
       contactRoute,
-      agendaRoute,
       graphRoute,
       documentsRoute,
       documentRoute,

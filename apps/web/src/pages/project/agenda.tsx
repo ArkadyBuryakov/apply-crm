@@ -15,7 +15,7 @@ import { cn, formatDate } from "@/lib/utils";
 
 /** In-app reminders (ADR 0016): overdue, today's and upcoming planned work, bucketed by day by the API. */
 export function AgendaPage() {
-  const { projectId } = useParams({ from: "/authed/p/$projectId/agenda" });
+  const { projectId } = useParams({ from: "/authed/p/$projectId/" });
   const can = useCan(projectId);
   const me = useMe();
   const members = useMembers(projectId);

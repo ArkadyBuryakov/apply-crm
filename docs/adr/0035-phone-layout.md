@@ -11,7 +11,7 @@ touch screens do not fire), dialogs were boxes the keyboard covered, inline edit
 ## Decision
 - **One app, one set of routes.** Below Tailwind's `md` (768 px, `PHONE` in `lib/media.ts`) the same pages switch to a
   phone shell through responsive classes, plus a few phone-only components behind `usePhone()`. Tablets keep the rail.
-- **Shell.** The sidebar is hidden; a bottom tab bar holds Pipeline, Agenda, Search and Assistant, and More opens a
+- **Shell.** The sidebar is hidden; a bottom tab bar holds Agenda, Pipeline, Search and Assistant, and More opens a
   sheet with the remaining pages, project switch, theme and account. The header shows the page title, or on detail
   pages a way back to their list (browser history when there is one, so an installed app without a back button works).
   List pages pass `phoneTitle={false}` to `PageHeader`, which keeps their `h1` for screen readers only.

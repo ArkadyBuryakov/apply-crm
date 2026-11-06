@@ -53,7 +53,7 @@ export function PositionPage() {
           params: { path: { projectId, positionId }, query: { version: overview.data!.position.version } },
         }),
       ),
-    { success: "Position deleted", onSuccess: () => navigate({ to: "/p/$projectId", params: { projectId } }) },
+    { success: "Position deleted", onSuccess: () => navigate({ to: "/p/$projectId/pipeline", params: { projectId } }) },
   );
 
   if (overview.isLoading) return <Loading />;

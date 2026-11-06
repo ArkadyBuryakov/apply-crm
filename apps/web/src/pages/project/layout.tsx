@@ -55,8 +55,8 @@ const NAV_ITEM =
   "flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const NAV = [
-  { to: "/p/$projectId", label: "Pipeline", icon: KanbanSquare, exact: true },
-  { to: "/p/$projectId/agenda", label: "Agenda", icon: CalendarDays },
+  { to: "/p/$projectId", label: "Agenda", icon: CalendarDays, exact: true },
+  { to: "/p/$projectId/pipeline", label: "Pipeline", icon: KanbanSquare },
   { to: "/p/$projectId/organizations", label: "Organizations", icon: Building2 },
   { to: "/p/$projectId/contacts", label: "Contacts", icon: Users },
   { to: "/p/$projectId/graph", label: "Action graph", icon: Network },
@@ -340,13 +340,13 @@ function Sidebar({ projectId, projectName, role }: { projectId: string; projectN
 }
 
 const DETAIL_PARENTS = {
-  "/p/$projectId/positions/$positionId": "/p/$projectId",
+  "/p/$projectId/positions/$positionId": "/p/$projectId/pipeline",
   "/p/$projectId/organizations/$organizationId": "/p/$projectId/organizations",
   "/p/$projectId/contacts/$contactId": "/p/$projectId/contacts",
   "/p/$projectId/documents/$documentId": "/p/$projectId/documents",
 } as const;
 
-type PhoneTab = "pipeline" | "agenda" | "search" | "more";
+type PhoneTab = "agenda" | "pipeline" | "search" | "more";
 
 /** Where the phone shell is: the page's title, the list a detail page goes back to, and the tab it belongs under. */
 function usePhonePage() {
@@ -356,9 +356,9 @@ function usePhonePage() {
   const page = parent ?? path;
   const tab: PhoneTab =
     page === "/p/$projectId"
-      ? "pipeline"
-      : page === "/p/$projectId/agenda"
-        ? "agenda"
+      ? "agenda"
+      : page === "/p/$projectId/pipeline"
+        ? "pipeline"
         : page === "/p/$projectId/search"
           ? "search"
           : "more";
@@ -413,21 +413,16 @@ function TabBar({
       aria-label="Tabs"
       className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
+      <Link to="/p/$projectId" params={{ projectId }} onClick={onNavigate} className={cn(TAB, on("agenda") && TAB_ON)}>
+        <CalendarDays className="size-5" /> Agenda
+      </Link>
       <Link
-        to="/p/$projectId"
+        to="/p/$projectId/pipeline"
         params={{ projectId }}
         onClick={onNavigate}
         className={cn(TAB, on("pipeline") && TAB_ON)}
       >
         <KanbanSquare className="size-5" /> Pipeline
-      </Link>
-      <Link
-        to="/p/$projectId/agenda"
-        params={{ projectId }}
-        onClick={onNavigate}
-        className={cn(TAB, on("agenda") && TAB_ON)}
-      >
-        <CalendarDays className="size-5" /> Agenda
       </Link>
       <Link
         to="/p/$projectId/search"
@@ -653,7 +648,7 @@ function Notifications({ projectId, align = "start" }: { projectId: string; alig
               onSelect={() => (n.readAt ? undefined : markRead.mutate([n.id]))}
               className={cn("block", !n.readAt && "bg-accent/50")}
             >
-              <Link to="/p/$projectId/agenda" params={{ projectId }}>
+              <Link to="/p/$projectId" params={{ projectId }}>
                 {body}
               </Link>
             </MenuItem>
