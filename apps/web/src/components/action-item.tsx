@@ -3,6 +3,7 @@ import { CalendarClock, Check, CornerDownRight, Eye, Link2, MoreHorizontal, Tras
 import { useState } from "react";
 import { toast } from "sonner";
 import { ActionDialog } from "@/components/action-dialog";
+import { useOpenAction } from "@/components/opened-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateTimeInput } from "@/components/ui/date-picker";
@@ -30,7 +31,8 @@ export function ActionItem({
   showDue?: boolean;
 }) {
   const can = useCan(projectId);
-  const [dialog, setDialog] = useState<"edit" | "follow" | "reschedule" | "link" | null>(null);
+  const [dialog, setDialog] = useState<"follow" | "reschedule" | "link" | null>(null);
+  const openAction = useOpenAction(projectId);
   const meta = ACTION_META[action.type];
   const Icon = meta.icon;
   const when = action.completedAt ?? action.scheduledAt ?? action.dueAt;
@@ -74,7 +76,7 @@ export function ActionItem({
           <button
             type="button"
             className="cursor-pointer truncate text-left text-sm font-medium hover:underline"
-            onClick={() => setDialog("edit")}
+            onClick={() => openAction(action)}
           >
             {action.title}
           </button>
@@ -110,7 +112,7 @@ export function ActionItem({
               </Button>
             }
           >
-            <MenuItem onSelect={() => setDialog("edit")}>
+            <MenuItem onSelect={() => openAction(action)}>
               <Eye /> Open
             </MenuItem>
             {can("action:create", "edge:create") ? (
@@ -140,9 +142,6 @@ export function ActionItem({
         </div>
       ) : null}
 
-      {dialog === "edit" ? (
-        <ActionDialog projectId={projectId} open onOpenChange={() => setDialog(null)} action={action} />
-      ) : null}
       {dialog === "follow" ? (
         <ActionDialog
           projectId={projectId}

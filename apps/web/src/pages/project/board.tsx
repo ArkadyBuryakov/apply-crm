@@ -1,4 +1,4 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { type DragEvent, useState } from "react";
 import { PositionDialog } from "@/components/entity-forms";
@@ -23,7 +23,8 @@ export const OUTCOME_TONE = {
 export function BoardPage() {
   const { projectId } = useParams({ from: "/authed/p/$projectId/pipeline" });
   const can = useCan(projectId);
-  const [showClosed, setShowClosed] = useState(false);
+  const { closed: showClosed = false } = useSearch({ from: "/authed/p/$projectId/pipeline" });
+  const navigate = useNavigate();
   const stages = useStages(projectId);
   const positions = usePositions(projectId, showClosed ? {} : { outcome: "open" });
   const [creating, setCreating] = useState(false);
@@ -58,7 +59,13 @@ export function BoardPage() {
             <Select
               className="w-44 max-md:h-9! max-md:w-auto max-md:text-sm"
               value={showClosed ? "all" : "open"}
-              onChange={(e) => setShowClosed(e.target.value === "all")}
+              onChange={(e) =>
+                navigate({
+                  to: ".",
+                  search: (prev) => ({ ...prev, closed: e.target.value === "all" || undefined }),
+                  replace: true,
+                })
+              }
             >
               <option value="open">Open positions</option>
               <option value="all">All outcomes</option>
@@ -153,7 +160,10 @@ function PhoneBoard({
   positions: Position[];
   onMove?: (position: Position, stageId: string) => void;
 }) {
-  const [picked, setPicked] = useState<string>();
+  const { stage } = useSearch({ from: "/authed/p/$projectId/pipeline" });
+  const navigate = useNavigate();
+  const picked = stages.find((s) => s.key === stage)?.id;
+  const pick = (key?: string) => navigate({ to: ".", search: (prev) => ({ ...prev, stage: key }), replace: true });
   const current = picked ?? stages.find((s) => positions.some((p) => p.stageId === s.id))?.id ?? stages[0]?.id;
   const items = positions.filter((p) => p.stageId === current);
   return (
@@ -168,7 +178,7 @@ function PhoneBoard({
               type="button"
               role="tab"
               aria-selected={on}
-              onClick={() => setPicked(stage.id)}
+              onClick={() => pick(stage.key)}
               className={cn(
                 "flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-sm",
                 on ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground",
@@ -210,7 +220,7 @@ function PhoneBoard({
                   value={p.stageId}
                   onChange={(e) => {
                     // Stay on this stage rather than the default pick, which may now be another one.
-                    setPicked(current);
+                    pick(stages.find((s) => s.id === current)?.key);
                     onMove(p, e.target.value);
                   }}
                 >

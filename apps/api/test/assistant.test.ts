@@ -92,13 +92,14 @@ describe("chats", () => {
     app.ai.script({ text: "Hello there" });
     const res = await send(owner, chat.id, userMessage("m1", "What can you do for my job search?"), {
       page: `/p/${projectId}/agenda`,
+      title: "Agenda",
     });
     expect(res.status).toBe(200);
     expect(res.chunks).toContainEqual(expect.objectContaining({ type: "text-delta", delta: "Hello there" }));
 
     const prompt = JSON.stringify(app.ai.prompts.at(-1));
     expect(prompt).toContain("Job search"); // project name in the instructions
-    expect(prompt).toContain(`/p/${projectId}/agenda`);
+    expect(prompt).toContain(`looking at Agenda (/p/${projectId}/agenda)`);
 
     const messages = await storedMessages(chat.id);
     expect(messages.map((m) => m.role)).toEqual(["user", "assistant"]);

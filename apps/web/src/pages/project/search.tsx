@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import { ActionDialog } from "@/components/action-dialog";
+import { useOpenAction } from "@/components/opened-action";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
-import { type Action, api, unwrap } from "@/lib/api";
+import { api, unwrap } from "@/lib/api";
 import { humanize } from "@/lib/utils";
 
 export function SearchPage() {
@@ -14,7 +14,7 @@ export function SearchPage() {
   const { q } = useSearch({ from: "/authed/p/$projectId/search" });
   const navigate = useNavigate();
   const [text, setText] = useState(q);
-  const [opened, setOpened] = useState<Action | null>(null);
+  const openAction = useOpenAction(projectId);
   const results = useQuery({
     queryKey: ["search", projectId, q],
     enabled: q.length > 0,
@@ -25,14 +25,6 @@ export function SearchPage() {
         )
       ).items,
   });
-
-  async function openAction(id: string) {
-    setOpened(
-      await unwrap(
-        api.GET("/api/projects/{projectId}/actions/{actionId}", { params: { path: { projectId, actionId: id } } }),
-      ),
-    );
-  }
 
   return (
     <div>
@@ -99,7 +91,6 @@ export function SearchPage() {
           );
         })}
       </div>
-      {opened ? <ActionDialog projectId={projectId} open onOpenChange={() => setOpened(null)} action={opened} /> : null}
     </div>
   );
 }

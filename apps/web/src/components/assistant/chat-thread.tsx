@@ -24,6 +24,7 @@ import { Select, Textarea } from "@/components/ui/form";
 import { Spinner } from "@/components/ui/misc";
 import { type Schemas, uploadForm } from "@/lib/api";
 import type { ApprovalMode } from "@/lib/assistant-prefs";
+import { viewTitle } from "@/lib/document-title";
 import { type NavigationInput, navigationToolDefinition, runNavigation } from "@/lib/navigation-tool";
 import { errorMessage } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ export function ChatThread({
             message: messages.at(-1),
             navigation: navigationToolDefinition(router),
             page: router.state.location.href,
+            title: viewTitle(),
           },
         }),
       }),

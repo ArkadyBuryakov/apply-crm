@@ -10,10 +10,12 @@ import { Field, Input } from "@/components/ui/form";
 import { PageHeader } from "@/components/ui/misc";
 import { api, type Schemas, unwrap } from "@/lib/api";
 import { authClient } from "@/lib/auth";
+import { useDocumentTitle } from "@/lib/document-title";
 import { errorMessage, useMe } from "@/lib/queries";
 import { formatDateTime } from "@/lib/utils";
 
 export function AccountPage() {
+  useDocumentTitle("Account");
   const me = useMe();
   return (
     <div className="mx-auto grid max-w-3xl gap-6 p-6">

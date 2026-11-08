@@ -12,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { api, unwrap } from "@/lib/api";
+import { useDocumentTitle } from "@/lib/document-title";
 import { useCan, useChannels, useContacts, useOrganizations, useProjectMutation } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
@@ -110,6 +111,8 @@ export function ContactDetailPage() {
       ),
     { success: "Contact deleted", onSuccess: () => navigate({ to: "/p/$projectId/contacts", params: { projectId } }) },
   );
+
+  useDocumentTitle(contact.data?.name);
 
   if (contact.isLoading) return <Loading />;
   if (!contact.data) return <EmptyState title="Contact not found" />;

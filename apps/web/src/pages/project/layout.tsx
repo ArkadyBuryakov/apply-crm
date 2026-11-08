@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, useEffect, useState } from "react";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
+import { OpenedAction } from "@/components/opened-action";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/form";
@@ -43,6 +44,7 @@ import { Loading } from "@/components/ui/misc";
 import { api, unwrap } from "@/lib/api";
 import { panelOpen, panelWidth } from "@/lib/assistant-prefs";
 import { authClient } from "@/lib/auth";
+import { useDocumentTitle } from "@/lib/document-title";
 import { clearLastProject, setLastProject } from "@/lib/last-project";
 import { useLiveUpdates } from "@/lib/live-updates";
 import { useMediaQuery } from "@/lib/media";
@@ -152,6 +154,8 @@ export function ProjectLayout() {
         <main className="flex min-w-0 flex-1 flex-col p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] md:p-6">
           <Outlet />
         </main>
+        <OpenedAction projectId={projectId} />
+        <ListPageTitle />
       </div>
       <TabBar
         projectId={projectId}
@@ -364,6 +368,13 @@ function usePhonePage() {
           : "more";
   const title = page === "/p/$projectId/search" ? "Search" : (NAV.find((n) => n.to === page)?.label ?? "");
   return { title, parent, tab };
+}
+
+/** Names list pages in the browser tab; detail pages name their record themselves. */
+function ListPageTitle() {
+  const { title, parent } = usePhonePage();
+  useDocumentTitle(parent ? undefined : title);
+  return null;
 }
 
 /** The phone header's left side: the page title, or a way back to the list on detail pages. */

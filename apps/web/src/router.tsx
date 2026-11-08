@@ -73,23 +73,47 @@ const projectRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/p/$projectId",
   component: ProjectLayout,
+  // View state lives in search params (ADR 0036); `action` opens over every project page.
+  validateSearch: z.object({
+    action: z.string().optional().catch(undefined).describe("Open this action's details over the page (act_…)"),
+  }),
 });
 const agendaRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/",
   component: AgendaPage,
+  validateSearch: z.object({
+    assignee: z.string().optional().catch(undefined).describe("Only actions assigned to this member (user ID)"),
+    from: z.string().optional().catch(undefined).describe("Start of the range, YYYY-MM-DD"),
+    to: z.string().optional().catch(undefined).describe("End of the range, YYYY-MM-DD"),
+  }),
   staticData: { description: "Agenda: overdue actions, today's, and what is coming up by day" },
 });
 const boardRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/pipeline",
   component: BoardPage,
+  validateSearch: z.object({
+    closed: z.boolean().optional().catch(undefined).describe("Also show positions that are no longer open"),
+    stage: z
+      .string()
+      .optional()
+      .catch(undefined)
+      .describe("Stage key listed on phones, which show one stage at a time"),
+  }),
   staticData: { description: "Pipeline board: the project's positions grouped by stage" },
 });
 const positionRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/positions/$positionId",
   component: PositionPage,
+  validateSearch: z.object({
+    tab: z
+      .enum(["graph", "people", "documents", "listing", "comments"])
+      .optional()
+      .catch(undefined)
+      .describe("Tab to show; the action timeline when absent"),
+  }),
   staticData: {
     description: "One position: details, listing, stage and outcome, contacts, action timeline, documents",
   },
@@ -104,6 +128,13 @@ const organizationRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/organizations/$organizationId",
   component: OrganizationDetailPage,
+  validateSearch: z.object({
+    tab: z
+      .enum(["people", "timeline", "comments"])
+      .optional()
+      .catch(undefined)
+      .describe("Tab to show; the organization's positions when absent"),
+  }),
   staticData: { description: "One organization: details, its positions, contacts and timeline" },
 });
 const contactsRoute = createRoute({
@@ -138,6 +169,14 @@ const documentRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/documents/$documentId",
   component: DocumentDetailPage,
+  validateSearch: z.object({
+    version: z.number().int().positive().optional().catch(undefined).describe("Version number; the latest when absent"),
+    view: z
+      .enum(["pdf", "source", "log"])
+      .optional()
+      .catch(undefined)
+      .describe("Format of the version to show: compiled PDF, LaTeX source or compile log"),
+  }),
   staticData: { description: "One document: its versions, LaTeX source and compiled PDF" },
 });
 const searchRoute = createRoute({
@@ -195,6 +234,10 @@ export type AppRouter = ReturnType<typeof createAppRouter>;
 declare module "@tanstack/react-router" {
   interface Register {
     router: AppRouter;
+  }
+  interface HistoryState {
+    /** Set on the entry that opened an action dialog, so closing it can go back instead of adding an entry. */
+    openedAction?: boolean;
   }
   interface StaticDataRouteOption {
     /** What the page shows; routes with a description are navigable by the assistant. */

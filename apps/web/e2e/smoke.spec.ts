@@ -49,6 +49,9 @@ test("first user sets up a project and logs an interaction", async ({ page }) =>
   // An opened action is read-first: its references are links, and each field is edited and saved on its own.
   await page.getByRole("button", { name: "Applied on careers site" }).click();
   const details = page.getByRole("dialog");
+  // It opens over the page through the URL (ADR 0036), and the browser tab names it.
+  await expect(page).toHaveURL(/[?&]action=act_/);
+  await expect(page).toHaveTitle("Applied on careers site — Staff engineer · Acme — Apply CRM");
   await expect(details.getByRole("link", { name: "Staff engineer — Acme" })).toBeVisible();
   await expect(details.getByRole("textbox")).toHaveCount(0);
   await details.getByRole("button", { name: "Edit notes" }).click();
@@ -58,9 +61,20 @@ test("first user sets up a project and logs an interaction", async ({ page }) =>
   await expect(details.locator(".inline-field-saved")).toHaveCount(1);
   await page.keyboard.press("Escape");
   await expect(page.getByText("Referred by a former colleague")).toBeVisible();
+  await expect(page).not.toHaveURL(/action=/);
 
+  // Tabs and the opened action survive a reload; Back closes the action.
   await page.getByRole("tab", { name: "Graph" }).click();
+  await expect(page).toHaveURL(/[?&]tab=graph/);
   await expect(page.locator(".react-flow__node")).toHaveCount(1);
+  await page.locator(".react-flow__node").click();
+  await expect(page).toHaveURL(/tab=graph.*action=act_/);
+  await page.reload();
+  await expect(page.getByRole("dialog").getByText("Referred by a former colleague")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page).toHaveURL(/tab=graph$/);
+  await expect(page.getByRole("tab", { name: "Graph" })).toHaveAttribute("aria-selected", "true");
 
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page.getByLabel("MCP URL")).toHaveValue(/\/mcp\/projects\/prj_/);

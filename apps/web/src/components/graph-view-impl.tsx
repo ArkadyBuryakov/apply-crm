@@ -16,8 +16,8 @@ import {
   Position,
   ReactFlow,
 } from "@xyflow/react";
-import { ActionDialog } from "@/components/action-dialog";
 import { EDGE_LABELS } from "@/components/action-item";
+import { useOpenAction } from "@/components/opened-action";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Select } from "@/components/ui/form";
@@ -121,7 +121,7 @@ export function GraphView({ projectId, actions, edges }: { projectId: string; ac
   const flow = useMemo(() => layout(actions, edges), [actions, edges]);
   const cyclic = useMemo(() => hasCycle(edges), [edges]);
   const [pending, setPending] = useState<Connection | null>(null);
-  const [editing, setEditing] = useState<Action | null>(null);
+  const openAction = useOpenAction(projectId);
   const [selectedEdge, setSelectedEdge] = useState<ApiEdge | null>(null);
 
   if (actions.length === 0) {
@@ -146,7 +146,7 @@ export function GraphView({ projectId, actions, edges }: { projectId: string; ac
           nodesDraggable={!phone}
           nodesConnectable={!phone && can("edge:create")}
           onConnect={(c) => c.source !== c.target && setPending(c)}
-          onNodeClick={(_, node) => setEditing((node.data as ActionNodeData).action)}
+          onNodeClick={(_, node) => openAction((node.data as ActionNodeData).action)}
           onEdgeClick={(_, e) =>
             !phone &&
             can("edge:delete") &&
@@ -159,9 +159,6 @@ export function GraphView({ projectId, actions, edges }: { projectId: string; ac
         </ReactFlow>
       </div>
       {pending ? <NewEdgeDialog projectId={projectId} connection={pending} onClose={() => setPending(null)} /> : null}
-      {editing ? (
-        <ActionDialog projectId={projectId} open onOpenChange={() => setEditing(null)} action={editing} />
-      ) : null}
       {selectedEdge ? (
         <RemoveEdgeDialog projectId={projectId} edge={selectedEdge} onClose={() => setSelectedEdge(null)} />
       ) : null}

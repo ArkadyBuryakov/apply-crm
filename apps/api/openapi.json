@@ -16930,7 +16930,7 @@
       "post": {
         "operationId": "sendChatMessage",
         "summary": "Send a message and stream the assistant's reply",
-        "description": "Send only the newest message: a new user message, or the latest assistant message again after answering an approval request or a navigation call. The reply is an AI SDK UI message stream (server-sent events). `navigation` is the browser-executed navigation tool; `page` is the path the user is looking at.",
+        "description": "Send only the newest message: a new user message, or the latest assistant message again after answering an approval request or a navigation call. The reply is an AI SDK UI message stream (server-sent events). `navigation` is the browser-executed navigation tool; `page` is the path the user is looking at and `title` what it shows.",
         "tags": [
           "Assistant"
         ],
@@ -17003,6 +17003,10 @@
                   "page": {
                     "type": "string",
                     "maxLength": 2000
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 500
                   }
                 },
                 "required": [

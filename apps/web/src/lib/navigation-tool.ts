@@ -17,13 +17,18 @@ export function navigableRoutes(router: AppRouter): NavigableRoute[] {
   return (Object.values(router.routesById) as AnyRoute[]).flatMap((route) => {
     const description = route.options.staticData?.description;
     if (!description) return [];
-    const validate = route.options.validateSearch;
+    // A page also takes its parents' search params, such as the project's `action` (ADR 0036).
+    const shape: z.ZodRawShape = {};
+    for (let r: AnyRoute | undefined = route; r; r = r.parentRoute) {
+      const validate = r.options.validateSearch;
+      if (validate instanceof z.ZodObject) Object.assign(shape, { ...validate.shape, ...shape });
+    }
     return [
       {
         to: route.fullPath,
         description,
         params: [...route.fullPath.matchAll(/\$(\w+)/g)].map((m) => m[1]!),
-        search: validate instanceof z.ZodType ? validate : null,
+        search: Object.keys(shape).length ? z.object(shape) : null,
       },
     ];
   });

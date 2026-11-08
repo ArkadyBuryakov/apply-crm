@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { ExternalLink, Network, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
@@ -13,6 +13,7 @@ import { Input, Select } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, unwrap } from "@/lib/api";
+import { useDocumentTitle } from "@/lib/document-title";
 import { useCan, useContacts, useOrganizations, usePositions, useProjectMutation } from "@/lib/queries";
 import { humanize } from "@/lib/utils";
 import { OUTCOME_TONE } from "./board";
@@ -76,6 +77,7 @@ export function OrganizationDetailPage() {
   const { projectId, organizationId } = useParams({ from: "/authed/p/$projectId/organizations/$organizationId" });
   const can = useCan(projectId);
   const navigate = useNavigate();
+  const { tab } = useSearch({ from: "/authed/p/$projectId/organizations/$organizationId" });
   const [dialog, setDialog] = useState<"edit" | "position" | "contact" | "action" | null>(null);
   const org = useQuery({
     queryKey: ["organization", projectId, organizationId],
@@ -112,6 +114,8 @@ export function OrganizationDetailPage() {
       onSuccess: () => navigate({ to: "/p/$projectId/organizations", params: { projectId } }),
     },
   );
+
+  useDocumentTitle(org.data?.name);
 
   if (org.isLoading) return <Loading />;
   if (!org.data) return <EmptyState title="Organization not found" />;
@@ -162,7 +166,16 @@ export function OrganizationDetailPage() {
         }
       />
       {o.notes ? <p className="mb-4 whitespace-pre-wrap text-sm text-muted-foreground">{o.notes}</p> : null}
-      <Tabs defaultValue="positions">
+      <Tabs
+        value={tab ?? "positions"}
+        onValueChange={(value) =>
+          navigate({
+            to: ".",
+            search: (prev) => ({ ...prev, tab: value === "positions" ? undefined : (value as typeof tab) }),
+            replace: true,
+          })
+        }
+      >
         <TabsList>
           <TabsTrigger value="positions">Positions ({positions.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="people">People ({people.data?.length ?? 0})</TabsTrigger>

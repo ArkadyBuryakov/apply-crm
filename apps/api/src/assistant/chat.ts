@@ -168,6 +168,8 @@ export type TurnInput = {
   message: UIMessage;
   navigation?: NavigationDefinition;
   page?: string;
+  /** The page's title, naming the records it shows (ADR 0036). */
+  title?: string;
   signal?: AbortSignal;
 };
 
@@ -238,7 +240,9 @@ function instructions(input: TurnInput, projectName: string, memory: string): Sy
   const context = [
     `The user is ${input.actor.name} (${input.actor.email}). It is ${now} in their timezone (${input.actor.timezone}).`,
     input.chat.webSearch ? "Web search is on." : "Web search is off; say so if the user asks for something on the web.",
-    input.page ? `The user is looking at the page ${input.page}.` : "",
+    input.page
+      ? `The user is looking at ${input.title ? `${input.title} (${input.page})` : `the page ${input.page}`}.`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");

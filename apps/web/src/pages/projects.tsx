@@ -9,10 +9,12 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { api, unwrap } from "@/lib/api";
+import { useDocumentTitle } from "@/lib/document-title";
 import { errorMessage, useProjects } from "@/lib/queries";
 import { humanize } from "@/lib/utils";
 
 export function ProjectsPage() {
+  useDocumentTitle("Projects");
   const projects = useProjects();
   const [creating, setCreating] = useState(false);
   return (

@@ -257,7 +257,8 @@ const sendMessage = defineRoute({
   description:
     "Send only the newest message: a new user message, or the latest assistant message again after answering an " +
     "approval request or a navigation call. The reply is an AI SDK UI message stream (server-sent events). " +
-    "`navigation` is the browser-executed navigation tool; `page` is the path the user is looking at.",
+    "`navigation` is the browser-executed navigation tool; `page` is the path the user is looking at and `title` " +
+    "what it shows.",
   scope: "project",
   permissions: ["project:read"],
   tags,
@@ -270,6 +271,7 @@ const sendMessage = defineRoute({
           .object({ description: z.string().max(50_000), inputSchema: z.record(z.string(), z.unknown()) })
           .optional(),
         page: z.string().max(2000).optional(),
+        title: z.string().max(500).optional(),
       }),
     ),
   },
@@ -521,6 +523,7 @@ export function registerAssistantRoutes(app: OpenAPIHono<AppEnv>, catalog: () =>
       message: body.message as UIMessage,
       ...(body.navigation ? { navigation: body.navigation } : {}),
       ...(body.page ? { page: body.page } : {}),
+      ...(body.title ? { title: body.title } : {}),
       signal: c.req.raw.signal,
     });
     return response as never;

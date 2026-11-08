@@ -40,5 +40,6 @@ Records are never edited after acceptance except to change status. To revise a d
 | 0033 | [Audit log is owner-only](0033-audit-log-owner-only.md) | Accepted, amends 0015 |
 | 0034 | [Live updates](0034-live-updates.md) | Accepted |
 | 0035 | [Phone layout and home-screen install](0035-phone-layout.md) | Accepted |
+| 0036 | [View state in URLs](0036-view-state-in-urls.md) | Accepted, refines 0031 |
 
 Open questions live in `docs/questions/`.

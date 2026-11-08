@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { ListFilter, Plus } from "lucide-react";
 import { useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
@@ -19,9 +19,18 @@ export function AgendaPage() {
   const can = useCan(projectId);
   const me = useMe();
   const members = useMembers(projectId);
-  const [assigneeId, setAssigneeId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const { assignee: assigneeId = "", from = "", to = "" } = useSearch({ from: "/authed/p/$projectId/" });
+  const navigate = useNavigate();
+  const filter = (change: { assignee?: string; from?: string; to?: string }) =>
+    navigate({
+      to: ".",
+      // Empty filters are left out of the URL.
+      search: (prev) => ({
+        ...prev,
+        ...Object.fromEntries(Object.entries(change).map(([k, v]) => [k, v || undefined])),
+      }),
+      replace: true,
+    });
   const [creating, setCreating] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const agenda = useQuery({
@@ -79,7 +88,7 @@ export function AgendaPage() {
         <Select
           className="w-48 max-md:col-span-2 max-md:w-full"
           value={assigneeId}
-          onChange={(e) => setAssigneeId(e.target.value)}
+          onChange={(e) => filter({ assignee: e.target.value })}
           aria-label="Assignee"
         >
           <option value="">Everyone</option>
@@ -95,14 +104,14 @@ export function AgendaPage() {
         <DateInput
           className="w-44 max-md:w-full"
           value={from}
-          onChange={(e) => setFrom(e.target.value)}
+          onChange={(e) => filter({ from: e.target.value })}
           aria-label="From"
           placeholder="From"
         />
         <DateInput
           className="w-44 max-md:w-full"
           value={to}
-          onChange={(e) => setTo(e.target.value)}
+          onChange={(e) => filter({ to: e.target.value })}
           aria-label="To"
           placeholder="To"
         />

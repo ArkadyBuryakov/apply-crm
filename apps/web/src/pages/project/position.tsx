@@ -1,6 +1,6 @@
 import { POSITION_OUTCOMES, type PositionOutcome } from "@crm/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { ExternalLink, FileText, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ActionDialog } from "@/components/action-dialog";
@@ -16,6 +16,7 @@ import { Menu, MenuItem } from "@/components/ui/menu";
 import { EmptyState, Fab, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, unwrap } from "@/lib/api";
+import { useDocumentTitle } from "@/lib/document-title";
 import { useCan, useProjectMutation, useStages } from "@/lib/queries";
 import { formatDate, formatSalary, humanize } from "@/lib/utils";
 import { OUTCOME_TONE } from "./board";
@@ -23,6 +24,7 @@ import { OUTCOME_TONE } from "./board";
 export function PositionPage() {
   const { projectId, positionId } = useParams({ from: "/authed/p/$projectId/positions/$positionId" });
   const can = useCan(projectId);
+  const { tab } = useSearch({ from: "/authed/p/$projectId/positions/$positionId" });
   const navigate = useNavigate();
   const stages = useStages(projectId);
   const [editing, setEditing] = useState(false);
@@ -55,6 +57,9 @@ export function PositionPage() {
       ),
     { success: "Position deleted", onSuccess: () => navigate({ to: "/p/$projectId/pipeline", params: { projectId } }) },
   );
+
+  const p = overview.data;
+  useDocumentTitle(p && [p.position.title, p.company?.name].filter(Boolean).join(" · "));
 
   if (overview.isLoading) return <Loading />;
   if (!overview.data) return <EmptyState title="Position not found" />;
@@ -176,7 +181,17 @@ export function PositionPage() {
         }
       />
 
-      <Tabs defaultValue="timeline" className="flex flex-1 flex-col">
+      <Tabs
+        value={tab ?? "timeline"}
+        onValueChange={(value) =>
+          navigate({
+            to: ".",
+            search: (prev) => ({ ...prev, tab: value === "timeline" ? undefined : (value as typeof tab) }),
+            replace: true,
+          })
+        }
+        className="flex flex-1 flex-col"
+      >
         <TabsList>
           <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
           <TabsTrigger value="graph">Graph</TabsTrigger>

@@ -45,6 +45,7 @@ test("tab bar, stage chips and sheets replace the sidebar and board", async ({ p
   await expect(page.getByText("Nothing at this stage.")).toBeVisible();
   await page.getByRole("tab", { name: /Screening/ }).click();
   await expect(page.getByRole("link", { name: /Staff engineer/ })).toBeVisible();
+  await expect(page).toHaveURL(/[?&]stage=screening/);
 
   // Dialogs fill the screen.
   await page.getByRole("button", { name: "New position" }).click();
@@ -57,7 +58,9 @@ test("tab bar, stage chips and sheets replace the sidebar and board", async ({ p
   await page.getByRole("link", { name: /Staff engineer/ }).click();
   await expect(page.getByRole("heading", { name: "Staff engineer" })).toBeVisible();
   await page.getByRole("button", { name: "Pipeline" }).click();
-  await expect(page).toHaveURL(new RegExp(`/p/${projectId}/pipeline$`));
+  // Back on the stage that was picked.
+  await expect(page).toHaveURL(new RegExp(`/p/${projectId}/pipeline\\?stage=screening$`));
+  await expect(page.getByRole("tab", { name: /Screening/ })).toHaveAttribute("aria-selected", "true");
 
   // More holds the rest of the sidebar.
   await tabs.getByRole("button", { name: "More" }).click();

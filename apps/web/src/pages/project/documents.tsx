@@ -3,7 +3,7 @@
 
 import { DOCUMENT_KINDS, type DocumentKind } from "@crm/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Download, ExternalLink, FileUp, Pencil, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { EmptyState, Loading, PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type DocumentT, type Schemas, unwrap, uploadForm } from "@/lib/api";
+import { useDocumentTitle } from "@/lib/document-title";
 import { usePhone } from "@/lib/media";
 import { invalidateProject, useCan, useMe, usePositions, useProjectMutation } from "@/lib/queries";
 import { cn, formatDateTime, humanize } from "@/lib/utils";
@@ -351,7 +352,9 @@ export function DocumentDetailPage() {
   const navigate = useNavigate();
   const templates = useTemplates(projectId);
   const positions = usePositions(projectId);
-  const [selected, setSelected] = useState<string | null>(null);
+  const search = useSearch({ from: "/authed/p/$projectId/documents/$documentId" });
+  const setSearch = (change: { version?: number; view?: PreviewTab }) =>
+    navigate({ to: ".", search: (prev) => ({ ...prev, ...change }), replace: true });
   const [editing, setEditing] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -363,7 +366,8 @@ export function DocumentDetailPage() {
         api.GET("/api/projects/{projectId}/documents/{documentId}", { params: { path: { projectId, documentId } } }),
       ),
   });
-  const versionId = selected ?? doc.data?.versions[0]?.id ?? null;
+  const versionId =
+    (doc.data?.versions.find((v) => v.versionNo === search.version) ?? doc.data?.versions[0])?.id ?? null;
   const version = useQuery({
     queryKey: [
       "document-version",
@@ -413,12 +417,14 @@ export function DocumentDetailPage() {
         form,
       );
       toast.success(`Uploaded as version ${v.versionNo}`);
-      setSelected(v.id);
+      setSearch({ version: v.versionNo });
       await invalidateProject(qc, projectId);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     }
   }
+
+  useDocumentTitle(doc.data?.title);
 
   if (doc.isLoading) return <Loading />;
   if (!doc.data) return <EmptyState title="Document not found" />;
@@ -487,7 +493,7 @@ export function DocumentDetailPage() {
                 <button
                   key={ver.id}
                   type="button"
-                  onClick={() => setSelected(ver.id)}
+                  onClick={() => setSearch({ version: ver.versionNo })}
                   className={cn(
                     "flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
                     ver.id === versionId && "bg-muted font-medium",
@@ -536,7 +542,9 @@ export function DocumentDetailPage() {
                 version={v}
                 pdfUrl={`${base}/${v.id}/pdf`}
                 editable={can("document:update")}
-                onCreated={(id) => setSelected(id)}
+                view={search.view}
+                onView={(view) => setSearch({ view })}
+                onCreated={(versionNo) => setSearch({ version: versionNo })}
               />
             </div>
           ) : (
@@ -565,7 +573,7 @@ export function DocumentDetailPage() {
           initialFilename={v?.format === "latex" ? v.filename : "main.tex"}
           templates={templates.data ?? []}
           onClose={() => setEditing(false)}
-          onCreated={(id) => setSelected(id)}
+          onCreated={(versionNo) => setSearch({ version: versionNo })}
         />
       ) : null}
     </div>
@@ -637,6 +645,8 @@ function Preview({
   version,
   pdfUrl,
   editable,
+  view: picked,
+  onView,
   onCreated,
 }: {
   projectId: string;
@@ -644,9 +654,10 @@ function Preview({
   version: VersionDetail;
   pdfUrl: string;
   editable: boolean;
-  onCreated: (versionId: string) => void;
+  view?: PreviewTab;
+  onView: (view: PreviewTab) => void;
+  onCreated: (versionNo: number) => void;
 }) {
-  const [picked, setPicked] = useState<PreviewTab | null>(null);
   // Phones only read and download: LaTeX is written on a keyboard, and mobile browsers do not show PDFs inline.
   const phone = usePhone();
   const available: PreviewTab[] = [
@@ -660,7 +671,7 @@ function Preview({
   if (!tab) return null;
 
   return (
-    <Tabs value={tab} onValueChange={(value) => setPicked(value as PreviewTab)}>
+    <Tabs value={tab} onValueChange={(value) => onView(value as PreviewTab)}>
       <TabsList>
         {available.includes("pdf") ? <TabsTrigger value="pdf">PDF</TabsTrigger> : null}
         {available.includes("source") ? <TabsTrigger value="source">Source</TabsTrigger> : null}
@@ -722,7 +733,7 @@ function SourceEditor({
   version: VersionDetail;
   source: string;
   editable: boolean;
-  onCreated: (versionId: string) => void;
+  onCreated: (versionNo: number) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const save = useProjectMutation(
@@ -739,7 +750,7 @@ function SourceEditor({
           },
         }),
       ),
-    { success: "Saved as a new version; compiling…", onSuccess: (v) => onCreated(v.id) },
+    { success: "Saved as a new version; compiling…", onSuccess: (v) => onCreated(v.versionNo) },
   );
   return (
     <div className="grid gap-2">
@@ -799,7 +810,7 @@ function LatexEditor({
   initialFilename: string;
   templates: Schemas["Template"][];
   onClose: () => void;
-  onCreated: (versionId: string) => void;
+  onCreated: (versionNo: number) => void;
 }) {
   const [source, setSource] = useState(initial);
   const [templateVersionId, setTemplateVersionId] = useState(initialTemplateVersionId);
@@ -817,7 +828,7 @@ function LatexEditor({
     {
       success: "Saved; compiling…",
       onSuccess: (v) => {
-        onCreated(v.id);
+        onCreated(v.versionNo);
         onClose();
       },
     },
